@@ -96,7 +96,36 @@
   </div>
 </section>
 
-<section id="tests" class="section"><div class="page-title"><p class="eyebrow">PRACTICE TEST</p><h2>Choose your exam</h2><p>Full mocks, sectional tests, chapter tests and PYQ-style tests.</p></div><div class="category-tabs" id="categoryTabs"></div><div class="series-grid" id="seriesGrid"></div></section>
+<section id="tests" class="section practice-page">
+  <div class="practice-heading">
+    <div>
+      <p class="eyebrow">PRACTICE TEST</p>
+      <h2>Practice. Analyse. Improve.</h2>
+      <p>Choose your government exam and start a mock, sectional or PYQ-pattern test.</p>
+    </div>
+    <button class="practice-search-btn" type="button" onclick="document.getElementById('practiceSeriesSearch').focus()">⌕ Search Tests</button>
+  </div>
+
+  <div class="practice-stats">
+    <div><span>📚</span><div><b>8+</b><small>Government Exams</small></div></div>
+    <div><span>📝</span><div><b>50+</b><small>Test Series</small></div></div>
+    <div><span>🎯</span><div><b>5,000+</b><small>Practice Questions</small></div></div>
+    <div><span>⚡</span><div><b>24×7</b><small>Practice Access</small></div></div>
+  </div>
+
+  <div class="practice-toolbar">
+    <div>
+      <h3>Choose your exam</h3>
+      <p>Filter test series by exam category.</p>
+    </div>
+    <div class="practice-tools">
+      <div class="series-search"><span>⌕</span><input id="practiceSeriesSearch" placeholder="Search test series..." aria-label="Search test series"></div>
+    </div>
+  </div>
+
+  <div class="category-tabs" id="categoryTabs"></div>
+  <div class="series-grid" id="seriesGrid"></div>
+</section>
 <section id="seriesDetail" class="section"><button class="back-btn" data-section="tests">← Test Series</button><div id="seriesDetailContent"></div></section>
 <section id="practice" class="section"><div class="page-title"><p class="eyebrow">STUDY & PRACTICE</p><h2>Practice by subject</h2><p>Chapter-wise practice without loading the whole database.</p></div><div class="filter-row"><select id="practiceExam"><option>SSC GD</option><option>SSC CGL</option><option>SSC CHSL</option><option>RRB Group D</option><option>RRB NTPC</option><option>IBPS PO</option><option>IBPS Clerk</option></select></div><div class="subject-grid" id="subjectGrid"></div></section>
 <section id="current" class="section"><div class="page-title"><p class="eyebrow">CURRENT AFFAIRS</p><h2>Awareness practice</h2></div><div class="current-grid"><article class="news-card"><span class="tag">Daily Quiz</span><h3>Current Affairs Quiz</h3><p>Timed objective questions with result analysis.</p><button class="primary small" data-section="tests">Open Tests</button></article></div></section>
