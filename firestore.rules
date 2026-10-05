@@ -1,0 +1,10 @@
+rules_version='2';
+service cloud.firestore{
+ match /databases/{database}/documents{
+  match /testSeries/{id}{allow read:if true;allow write:if false;}
+  match /tests/{id}{allow read:if true;allow write:if false;}
+  match /questions/{id}{allow read:if true;allow write:if false;}
+  match /users/{uid}{allow read,create,update:if request.auth!=null&&request.auth.uid==uid;allow delete:if false;}
+  match /attempts/{id}{allow create:if request.auth!=null&&request.resource.data.userId==request.auth.uid;allow read:if request.auth!=null&&resource.data.userId==request.auth.uid;allow update,delete:if false;}
+ }
+}
