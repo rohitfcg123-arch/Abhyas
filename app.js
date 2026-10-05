@@ -5,14 +5,41 @@ import {getFirestore,collection,getDocs,getDoc,doc,query,where,limit,addDoc,serv
 import {firebaseConfig} from "./firebase-config.js";
 
 const exams=[
-{name:"SSC GD",icon:"🛡️",category:"SSC",desc:"General Duty Constable",subjects:["General Intelligence & Reasoning","General Knowledge","Elementary Mathematics","English / Hindi"]},
-{name:"SSC CGL",icon:"📊",category:"SSC",desc:"Graduate Level",subjects:["Quantitative Aptitude","Reasoning","General Awareness","English"]},
+{name:"SSC CGL",icon:"📊",category:"SSC",desc:"Combined Graduate Level",subjects:["Quantitative Aptitude","Reasoning","General Awareness","English"]},
 {name:"SSC CHSL",icon:"📝",category:"SSC",desc:"10+2 Level",subjects:["Quantitative Aptitude","Reasoning","General Awareness","English"]},
-{name:"RRB Group D",icon:"🚆",category:"Railways",desc:"Railway Group D",subjects:["Mathematics","General Intelligence","General Science","General Awareness"]},
+{name:"SSC GD Constable",icon:"🛡️",category:"SSC",desc:"General Duty Constable",subjects:["Reasoning","General Knowledge","Mathematics","English / Hindi"]},
+{name:"SSC MTS",icon:"📋",category:"SSC",desc:"Multi Tasking Staff",subjects:["Numerical Ability","Reasoning","General Awareness","English"]},
+{name:"SSC CPO",icon:"👮",category:"SSC",desc:"Central Police Organisation",subjects:["Reasoning","Quantitative Aptitude","General Awareness","English"]},
+{name:"SSC Selection Post",icon:"🎯",category:"SSC",desc:"Selection Post",subjects:["General Intelligence","Quantitative Aptitude","English","General Awareness"]},
+{name:"SSC Stenographer",icon:"⌨️",category:"SSC",desc:"Grade C & D",subjects:["Reasoning","General Awareness","English"]},
+{name:"SSC JE",icon:"🛠️",category:"Engineering",desc:"Junior Engineer",subjects:["General Intelligence","General Awareness","Engineering"]},
+{name:"IBPS PO",icon:"🏦",category:"Banking & Insurance",desc:"Probationary Officer",subjects:["Quantitative Aptitude","Reasoning","English","General Awareness"]},
+{name:"IBPS Clerk",icon:"💳",category:"Banking & Insurance",desc:"Clerical Cadre",subjects:["Numerical Ability","Reasoning","English","General Awareness"]},
+{name:"IBPS RRB PO",icon:"🏦",category:"Banking & Insurance",desc:"Regional Rural Bank Officer",subjects:["Quantitative Aptitude","Reasoning","English","General Awareness"]},
+{name:"IBPS RRB Clerk",icon:"💼",category:"Banking & Insurance",desc:"Regional Rural Bank Clerk",subjects:["Numerical Ability","Reasoning","English","General Awareness"]},
+{name:"SBI PO",icon:"🏛️",category:"Banking & Insurance",desc:"Probationary Officer",subjects:["Quantitative Aptitude","Reasoning","English","Banking Awareness"]},
+{name:"SBI Clerk",icon:"🏦",category:"Banking & Insurance",desc:"Junior Associate",subjects:["Numerical Ability","Reasoning","English","General Awareness"]},
 {name:"RRB NTPC",icon:"🚉",category:"Railways",desc:"Non-Technical Popular Categories",subjects:["Mathematics","Reasoning","General Awareness","General Science"]},
-{name:"IBPS PO",icon:"🏦",category:"Banking",desc:"Probationary Officer",subjects:["Quantitative Aptitude","Reasoning","English","General Awareness"]},
-{name:"IBPS Clerk",icon:"💳",category:"Banking",desc:"Clerical Cadre",subjects:["Numerical Ability","Reasoning","English","General Awareness"]},
-{name:"SBI PO",icon:"🏛️",category:"Banking",desc:"Probationary Officer",subjects:["Quantitative Aptitude","Reasoning","English","Banking Awareness"]}];
+{name:"RRB Group D",icon:"🚆",category:"Railways",desc:"Level 1 Recruitment",subjects:["Mathematics","General Intelligence","General Science","General Awareness"]},
+{name:"RRB ALP",icon:"🚄",category:"Railways",desc:"Assistant Loco Pilot",subjects:["Mathematics","Reasoning","General Science","General Awareness"]},
+{name:"RRB Technician",icon:"🔧",category:"Railways",desc:"Technician",subjects:["Mathematics","General Intelligence","General Science","General Awareness"]},
+{name:"RPF Constable",icon:"🚔",category:"Railways",desc:"Railway Protection Force",subjects:["Arithmetic","Reasoning","General Awareness"]},
+{name:"UPSC Civil Services",icon:"🏛️",category:"Civil Services",desc:"IAS / CSE",subjects:["General Studies","CSAT","Current Affairs","Optional"]},
+{name:"CDS",icon:"🎖️",category:"Defence",desc:"Combined Defence Services",subjects:["English","General Knowledge","Mathematics"]},
+{name:"AFCAT",icon:"✈️",category:"Defence",desc:"Air Force Common Admission Test",subjects:["English","General Awareness","Reasoning","Numerical Ability"]},
+{name:"CAPF AC",icon:"🪖",category:"Defence",desc:"Central Armed Police Forces",subjects:["General Ability","General Studies","Essay"]},
+{name:"CTET",icon:"🎓",category:"Teaching",desc:"Central Teacher Eligibility Test",subjects:["Child Development","Mathematics","EVS","Language"]},
+{name:"KVS",icon:"🏫",category:"Teaching",desc:"Kendriya Vidyalaya",subjects:["English","Hindi","Reasoning","General Awareness"]},
+{name:"DSSSB",icon:"📚",category:"Teaching",desc:"Delhi Subordinate Services",subjects:["General Awareness","Reasoning","Numerical Ability","Language"]},
+{name:"UGC NET",icon:"🎓",category:"Teaching",desc:"National Eligibility Test",subjects:["Teaching Aptitude","Research Aptitude","Subject Paper"]},
+{name:"State PSC",icon:"🗺️",category:"State Exams",desc:"State Public Service Commission",subjects:["General Studies","Current Affairs","Reasoning","Language"]},
+{name:"UPSSSC PET",icon:"📑",category:"State Exams",desc:"Preliminary Eligibility Test",subjects:["General Intelligence","General Awareness","Hindi","Numerical Ability"]},
+{name:"UP Police",icon:"🚨",category:"Police",desc:"Uttar Pradesh Police",subjects:["General Knowledge","Reasoning","Numerical Ability","Hindi"]},
+{name:"State Police",icon:"👮",category:"Police",desc:"State Police Recruitment",subjects:["General Knowledge","Reasoning","Numerical Ability","Current Affairs"]},
+{name:"Insurance Exams",icon:"🛡️",category:"Insurance",desc:"Insurance Recruitment",subjects:["Reasoning","Quantitative Aptitude","English","General Awareness"]},
+{name:"Nursing Exams",icon:"⚕️",category:"Nursing",desc:"Government Nursing Exams",subjects:["Nursing","General Awareness","Reasoning","English"]},
+{name:"Judiciary Exams",icon:"⚖️",category:"Judiciary",desc:"Judicial Services",subjects:["Law","Constitution","Current Affairs","Language"]},
+{name:"CUET",icon:"🎓",category:"UG Entrance",desc:"Common University Entrance Test",subjects:["Language","General Test","Domain Subjects"]}];
 const seedSeries=[["SSC GD","SSC","SSC GD Complete Test Series","1200+","10"],["SSC CGL","SSC","SSC CGL Tier 1 Test Series","1500+","15"],["SSC CHSL","SSC","SSC CHSL Test Series","900+","10"],["RRB Group D","Railways","RRB Group D Test Series","900+","8"],["RRB NTPC","Railways","RRB NTPC Test Series","700+","8"],["IBPS PO","Banking","IBPS PO Prelims Test Series","600+","6"],["IBPS Clerk","Banking","IBPS Clerk Test Series","500+","6"],["SBI PO","Banking","SBI PO Test Series","450+","5"]].map((x,n)=>({id:"seed-"+n,exam:x[0],category:x[1],title:x[2],total:x[3],free:x[4],lang:"Hindi / English",types:"Full Mock • Sectional • PYQ"}));
 const key="abhyas_fast_state_v3",runnerKey="abhyas_active_test_v1";let state=Object.assign({questions:0,tests:0,correct:0,attempted:0,streak:0,exam:"",recent:[]},safe(localStorage.getItem(key)));let series=[...seedSeries],db=null,user=null,online=false,runner=null,timer=null,currentTests=[],finishLock=false;
 const $=id=>document.getElementById(id);function safe(v){try{return v?JSON.parse(v):{}}catch{return {}}}function save(){localStorage.setItem(key,JSON.stringify(state));stats();recent()}function persistRunner(){if(!runner)return;localStorage.setItem(runnerKey,JSON.stringify({...runner,review:[...runner.review]}))}function clearRunner(){localStorage.removeItem(runnerKey)}function startTimer(){clearInterval(timer);timer=setInterval(()=>{if(!runner||finishLock)return;runner.seconds--;renderTimer();persistRunner();if(runner.seconds<=0)finish(true)},1000)}function restoreRunner(){let r=safe(localStorage.getItem(runnerKey));if(!r?.t?.questions?.length)return false;runner={...r,review:new Set(r.review||[])};finishLock=false;section("testRunner");$("runnerTitle").textContent=runner.t.title;$("runnerSeries").textContent=series.find(x=>x.id===runner.t.seriesId)?.title||"Abhyas Test";renderRunner();startTimer();return true}function toast(t){let e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast.x);toast.x=setTimeout(()=>e.classList.remove("show"),2200)}
