@@ -1,8 +1,112 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#2563eb"><meta name="build" content="abhyas-2026-10-06-01"><title>Abhyas — Government Exam Test Series</title><link rel="stylesheet" href="styles.css"></head><body><header class="topbar"><a class="brand" href="#home" data-section="home"><div class="brand-mark">A</div><div><strong>Abhyas</strong><span>Government Exam Preparation</span></div></a><nav><button class="nav-btn active" data-section="home">Home</button><button class="nav-btn" data-section="tests">Test Series</button><button class="nav-btn" data-section="practice">Practice</button><button class="nav-btn" data-section="current">Current Affairs</button></nav><button class="profile-btn" id="profileBtn">Student</button></header><main>
-<section id="home" class="section active"><div class="hero"><div><p class="eyebrow">ABHYAS TEST SERIES</p><h1>Practice like the exam.<br><span>Perform like a topper.</span></h1><p class="hero-copy">SSC, Railway, Banking and other government-exam test series with timed mocks, sectional tests, PYQs and detailed performance analysis.</p><div class="hero-actions"><button class="primary" data-section="tests">Explore Test Series</button><button class="secondary" data-section="practice">Practice Questions</button></div></div><div class="hero-card"><div class="hero-card-top">Target Exam <span class="status-dot"></span></div><h3 id="targetTitle">Choose your exam</h3><p id="targetSub">Fast cache renders first; Firebase syncs in background.</p><select id="examSelect"><option value="">Choose your target exam</option><option>SSC GD</option><option>SSC CGL</option><option>SSC CHSL</option><option>RRB Group D</option><option>RRB NTPC</option><option>IBPS PO</option><option>IBPS Clerk</option><option>SBI PO</option></select></div></div><div class="stats-grid"><div class="stat"><span>Questions Practised</span><strong id="qCount">0</strong></div><div class="stat"><span>Tests Attempted</span><strong id="testCount">0</strong></div><div class="stat"><span>Accuracy</span><strong id="accuracy">0%</strong></div><div class="stat"><span>Study Streak</span><strong id="streak">0 days</strong></div></div><div class="section-head"><h2>Popular Exams</h2><button class="text-btn" data-section="tests">View all →</button></div><div class="exam-grid" id="examGrid"></div><div class="section-head"><h2>Recent Tests</h2></div><div class="recent-list" id="recentList"></div></section>
-<section id="tests" class="section"><div class="page-title"><p class="eyebrow">TEST SERIES</p><h2>Choose your exam</h2><p>Full mocks, sectional tests, chapter tests and PYQ-style tests.</p></div><div class="category-tabs" id="categoryTabs"></div><div class="series-grid" id="seriesGrid"></div></section>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b2a63">
+<meta name="build" content="abhyas-2026-10-06-02">
+<title>Abhyas — Government Exam Preparation</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#home" data-section="home">
+    <div class="brand-mark">◆</div>
+    <div><strong>Abhyas</strong><span>Practice · Analyse · Crack</span></div>
+  </a>
+  <div class="global-search"><span>⌕</span><input placeholder="Search exams, subjects, or topics..." aria-label="Search"></div>
+  <div class="top-actions"><button class="icon-btn" aria-label="Notifications">♧<i>3</i></button><button class="profile-btn" id="profileBtn"><b>ST</b><span>Student</span><small>Free Plan</small><em>⌄</em></button></div>
+  <nav class="desktop-nav">
+    <button class="nav-btn active" data-section="home">Home</button>
+    <button class="nav-btn" data-section="tests">Practice Test</button>
+    <button class="nav-btn" data-section="practice">Study Material</button>
+    <button class="nav-btn" data-section="current">Current Affairs</button>
+  </nav>
+</header>
+
+<div class="app-shell">
+<aside class="sidebar">
+  <button class="nav-btn active" data-section="home">⌂ <span>Home</span></button>
+  <button class="nav-btn" data-section="tests">◉ <span>Practice Test</span></button>
+  <button class="nav-btn" data-section="tests">▤ <span>Previous Year Papers</span></button>
+  <button class="nav-btn" data-section="practice">▥ <span>Study Material</span></button>
+  <button class="nav-btn" data-section="practice">☑ <span>Syllabus Tracker</span></button>
+  <button class="nav-btn" data-section="practice">◷ <span>Daily Study</span></button>
+  <button class="nav-btn" data-section="practice">⌁ <span>Performance</span></button>
+  <button class="nav-btn" data-section="tests">☆ <span>Bookmarks</span></button>
+  <button class="nav-btn" data-section="current">▧ <span>Current Affairs</span></button>
+  <button class="nav-btn" data-section="current">▣ <span>Exam Updates</span></button>
+  <button class="nav-btn" data-section="current">◌ <span>Discussion Forum</span></button>
+  <button class="nav-btn" data-section="home">⚙ <span>Settings</span></button>
+</aside>
+
+<main>
+<section id="home" class="section active">
+  <div class="home-grid">
+    <div>
+      <div class="hero">
+        <div class="hero-content">
+          <p class="eyebrow">YOUR GOVERNMENT EXAM PREPARATION PARTNER</p>
+          <h1>Practice <span>Smarter,</span><br>Crack Faster!</h1>
+          <p class="hero-copy">Topic-wise tests · Previous Year Papers · Detailed Analysis</p>
+          <div class="hero-actions"><button class="primary hero-cta" data-section="tests">Start Practice Now <b>→</b></button></div>
+        </div>
+        <div class="hero-visual" aria-hidden="true"><div class="sun">💡</div><div class="books"><b>SSC</b><b>Banking</b><b>Railway</b><b>UPSC</b><b>State Exams</b></div></div>
+      </div>
+
+      <div class="exam-strip" id="examGrid"></div>
+
+      <div class="home-columns">
+        <div class="panel progress-panel">
+          <div class="panel-head"><h2>▥ My Progress</h2><button class="text-btn">View Details</button></div>
+          <div class="progress-body"><div class="donut"><strong id="homeProgress">42%</strong><span>Overall Completion</span></div><div class="progress-stats"><p><i class="dot blue"></i>Tests Attempted <b id="testCount">0</b></p><p><i class="dot green"></i>Correct Answers <b id="qCount">0</b></p><p><i class="dot orange"></i>Study Hours <b>0h</b></p><p><i class="dot red"></i>Current Streak <b id="streak">0 days</b></p></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>▣ Today's Plan</h2><button class="text-btn">View Plan</button></div>
+          <div class="check-list"><label><input type="checkbox"> Quantitative Aptitude - 50 Qs</label><label><input type="checkbox" checked> Current Affairs - 30 Qs</label><label><input type="checkbox"> Reasoning - 50 Qs</label><label><input type="checkbox"> Static GK - 30 Qs</label></div>
+        </div>
+        <div class="panel recent-panel">
+          <div class="panel-head"><h2>⌁ Recent Test Performance</h2><button class="text-btn">View All</button></div>
+          <div class="recent-list" id="recentList"></div>
+        </div>
+      </div>
+
+      <div class="panel quick-panel">
+        <div class="panel-head"><h2>⚡ Quick Actions</h2></div>
+        <div class="quick-actions">
+          <button data-section="tests"><span>▤</span>Start Practice Test</button>
+          <button data-section="tests"><span>▥</span>Previous Year Papers</button>
+          <button data-section="practice"><span>▤</span>Study Material</button>
+          <button data-section="practice"><span>☷</span>Syllabus Tracker</button>
+          <button data-section="current"><span>▧</span>Current Affairs</button>
+        </div>
+      </div>
+
+      <div class="bottom-home-grid">
+        <div class="panel updates-panel"><div class="panel-head"><h2>📣 Latest Updates</h2><button class="text-btn">View All</button></div><div class="update-row"><b class="tag ssc">SSC</b><span>SSC CGL 2026 Notification Released</span><time>05 Oct 2026</time><em>New</em></div><div class="update-row"><b class="tag bank">BANK</b><span>SBI PO 2026 Exam Dates Announced</span><time>04 Oct 2026</time></div><div class="update-row"><b class="tag rail">RLY</b><span>RRB NTPC 2026 Application Starts Soon</span><time>03 Oct 2026</time></div><div class="update-row"><b class="tag state">STATE</b><span>State Exam Notifications & Updates</span><time>02 Oct 2026</time></div><div class="update-row"><b class="tag upsc">UPSC</b><span>UPSC Exam Calendar & Important Dates</span><time>01 Oct 2026</time></div></div>
+        <div class="panel resources-panel"><div class="panel-head"><h2>▥ Study Resources</h2><button class="text-btn">View All</button></div><div class="resource-grid"><button data-section="tests">◉<b>Subject-wise Tests</b></button><button data-section="tests">▤<b>PYQ Tests</b></button><button data-section="practice">▥<b>Notes & PDFs</b></button><button data-section="current">▧<b>Current Affairs</b></button><button data-section="practice">▣<b>Exam Strategy</b></button><button data-section="practice">★<b>Important Topics</b></button></div></div>
+      </div>
+    </div>
+
+    <aside class="countdown-card panel">
+      <div class="panel-head"><h2>▣ Countdown</h2><button class="text-btn">View All</button></div>
+      <h3>SSC CGL 2026</h3><p>Tier 1 Exam</p>
+      <div class="countdown-boxes"><div><b>64</b><span>Days</span></div><div><b>10</b><span>Hours</span></div><div><b>24</b><span>Minutes</span></div><div><b>18</b><span>Seconds</span></div></div>
+    </aside>
+  </div>
+</section>
+
+<section id="tests" class="section"><div class="page-title"><p class="eyebrow">PRACTICE TEST</p><h2>Choose your exam</h2><p>Full mocks, sectional tests, chapter tests and PYQ-style tests.</p></div><div class="category-tabs" id="categoryTabs"></div><div class="series-grid" id="seriesGrid"></div></section>
 <section id="seriesDetail" class="section"><button class="back-btn" data-section="tests">← Test Series</button><div id="seriesDetailContent"></div></section>
-<section id="practice" class="section"><div class="page-title"><p class="eyebrow">PRACTICE</p><h2>Practice by subject</h2><p>Chapter-wise practice without loading the whole database.</p></div><div class="filter-row"><select id="practiceExam"><option>SSC GD</option><option>SSC CGL</option><option>SSC CHSL</option><option>RRB Group D</option><option>RRB NTPC</option><option>IBPS PO</option><option>IBPS Clerk</option></select></div><div class="subject-grid" id="subjectGrid"></div></section>
+<section id="practice" class="section"><div class="page-title"><p class="eyebrow">STUDY & PRACTICE</p><h2>Practice by subject</h2><p>Chapter-wise practice without loading the whole database.</p></div><div class="filter-row"><select id="practiceExam"><option>SSC GD</option><option>SSC CGL</option><option>SSC CHSL</option><option>RRB Group D</option><option>RRB NTPC</option><option>IBPS PO</option><option>IBPS Clerk</option></select></div><div class="subject-grid" id="subjectGrid"></div></section>
 <section id="current" class="section"><div class="page-title"><p class="eyebrow">CURRENT AFFAIRS</p><h2>Awareness practice</h2></div><div class="current-grid"><article class="news-card"><span class="tag">Daily Quiz</span><h3>Current Affairs Quiz</h3><p>Timed objective questions with result analysis.</p><button class="primary small" data-section="tests">Open Tests</button></article></div></section>
 <section id="testRunner" class="section runner-section"><div class="runner-top"><div><span class="muted" id="runnerSeries">Test Series</span><h2 id="runnerTitle">Loading test…</h2></div><div class="timer" id="timer">00:00</div></div><div class="runner-progress"><div id="progressBar"></div></div><div class="runner-layout"><div class="question-card"><div class="question-meta"><span id="questionNo">Question 1</span><span id="marksInfo">1 mark</span></div><h3 id="questionText">Loading question…</h3><div id="options"></div><div class="runner-actions"><button class="secondary" id="prevBtn">Previous</button><button class="secondary" id="markBtn">☆ Mark for review</button><button class="primary" id="nextBtn">Next</button></div></div><aside class="palette"><h3>Questions</h3><div class="palette-grid" id="paletteGrid"></div><button class="submit-test" id="submitBtn">Submit Test</button></aside></div></section>
-<section id="result" class="section"><div id="resultContent"></div></section></main><div id="toast" class="toast"></div><footer><strong>Abhyas</strong> · Government Exam Preparation</footer><script type="module" src="app.js"></script></body></html>
+<section id="result" class="section"><div id="resultContent"></div></section>
+</main>
+</div>
+<nav class="mobile-nav"><button class="nav-btn active" data-section="home">⌂<span>Home</span></button><button class="nav-btn" data-section="tests">▤<span>Tests</span></button><button class="nav-btn" data-section="tests">▥<span>PYQs</span></button><button class="nav-btn" data-section="practice">▤<span>Study</span></button><button class="nav-btn" data-section="current">•••<span>More</span></button></nav>
+<div id="toast" class="toast"></div>
+<footer><strong>Abhyas</strong> · Government Exam Preparation</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>
