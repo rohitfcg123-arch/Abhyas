@@ -51,11 +51,15 @@
     const q=normalize(term);
     const cards=[...container.children].filter(x=>x.classList.contains("catalog-card")||x.classList.contains("series-card"));
     const ranked=cards.map((card,index)=>({card,index,score:relevance(q,card)}));
-    ranked.forEach(x=>{x.card.hidden=!!q && x.score<=0});
+    ranked.forEach(x=>{const hide=!!q && x.score<=0;x.card.hidden=hide;x.card.style.display=hide?"none":""});
     ranked.sort((a,b)=>b.score-a.score || a.index-b.index);
-    const frag=document.createDocumentFragment();
-    ranked.forEach(x=>frag.appendChild(x.card));
-    container.appendChild(frag);
+    const current=[...container.children].filter(x=>x.classList.contains("catalog-card")||x.classList.contains("series-card"));
+    const changed=current.length!==ranked.length||current.some((node,i)=>node!==ranked[i].card);
+    if(changed){
+      const frag=document.createDocumentFragment();
+      ranked.forEach(x=>frag.appendChild(x.card));
+      container.appendChild(frag);
+    }
     return ranked.filter(x=>!x.card.hidden).length;
   };
 
