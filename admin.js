@@ -7,6 +7,7 @@ const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Se
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const ALLOWED_UPLOADER_EMAIL="rohit.fcg123@gmail.com";
 const $=id=>document.getElementById(id); let selected="",allQuestions=[];
+const persistenceReady=setPersistence(auth,browserLocalPersistence).catch(error=>console.error("Auth persistence error:",error));
 function firebaseMessage(error){
   const map={
     "auth/unauthorized-domain":"This website domain is not authorized in Firebase Authentication. Add rohitfcg123-arch.github.io in Firebase Authentication → Settings → Authorized domains.",
@@ -35,13 +36,28 @@ $("googleLoginBtn").addEventListener("click",async()=>{
   $("googleLoginBtn").disabled=true;
   $("loginMsg").textContent="";
   try{
-    await setPersistence(auth,browserLocalPersistence);
     const googleProvider=new GoogleAuthProvider();
     googleProvider.setCustomParameters({prompt:"select_account"});
-    const result=await signInWithPopup(auth,googleProvider);
+    const popupPromise=signInWithPopup(auth,googleProvider);
+    const result=await Promise.race([
+      popupPromise,
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error("Google sign-in timed out. Please try again.")),20000))
+    ]);
+    await persistenceReady;
     if(!result?.user)throw new Error("Google sign-in did not return a Firebase user.");
-    if(typeof auth.authStateReady==="function")await auth.authStateReady();
-    if(!auth.currentUser)throw new Error("Firebase sign-in completed, but the session was not restored.");
+    const email=String(result.user.email||"").toLowerCase();
+    if(email!==ALLOWED_UPLOADER_EMAIL){
+      await signOut(auth);
+      throw new Error("This email is not authorized as a question uploader.");
+    }
+    if(!result.user.emailVerified){
+      await signOut(auth);
+      throw new Error("Please use the verified Google account: "+ALLOWED_UPLOADER_EMAIL);
+    }
+    $("loginView").hidden=true;
+    $("appView").hidden=false;
+    renderExams();
+    await loadCounts();
   }catch(err){
     console.error("Google popup sign-in error:",err);
     $("loginMsg").textContent=firebaseMessage(err);
