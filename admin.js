@@ -1,15 +1,11 @@
 import {firebaseConfig} from "./firebase-config.js";
-import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Selection Post","SSC Stenographer","SSC JE","IBPS PO","IBPS Clerk","IBPS RRB PO","IBPS RRB Clerk","SBI PO","SBI Clerk","RRB NTPC","RRB Group D","RRB ALP","RRB Technician","RPF Constable","UPSC Civil Services","CDS","AFCAT","CAPF AC","CTET","KVS","DSSSB","UGC NET","State PSC","UPSSSC PET","UP Police","State Police","Insurance Exams","Nursing Exams","Judiciary Exams","CUET"];
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),googleProvider=new GoogleAuthProvider();
-googleProvider.setCustomParameters({prompt:"select_account"});
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const ALLOWED_UPLOADER_EMAIL="rohit.fcg123@gmail.com";
-async function initializeAuthFlow(){
-  await setPersistence(auth,browserLocalPersistence);
-}
 const $=id=>document.getElementById(id); let selected="",allQuestions=[];
 function firebaseMessage(error){
   const map={
@@ -40,6 +36,8 @@ $("googleLoginBtn").addEventListener("click",async()=>{
   $("loginMsg").textContent="Opening Google sign-in…";
   try{
     await setPersistence(auth,browserLocalPersistence);
+    const googleProvider=new GoogleAuthProvider();
+    googleProvider.setCustomParameters({prompt:"select_account"});
     const result=await signInWithPopup(auth,googleProvider);
     if(!result?.user)throw new Error("Google sign-in did not return a Firebase user.");
     if(typeof auth.authStateReady==="function")await auth.authStateReady();
