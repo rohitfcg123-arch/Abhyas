@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b2a63"><title>Abhyas Admin — Question Bank</title>
+<link rel="stylesheet" href="admin.css?v=20261007-01">
+</head>
+<body>
+<div class="login" id="loginView">
+  <div class="login-card"><div class="logo">A</div><h1>Abhyas Admin</h1><p>Question Bank Management</p>
+    <form id="loginForm"><input id="email" type="email" placeholder="Admin email" required><input id="password" type="password" placeholder="Password" required><button class="primary">Login</button><div id="loginMsg"></div></form>
+  </div>
+</div>
+<div class="app" id="appView" hidden>
+<header><div><strong>Abhyas Admin</strong><span>Question Bank</span></div><button id="logoutBtn" class="secondary">Logout</button></header>
+<main>
+<section class="toolbar"><div><h1>Questions</h1><p id="summary">Select an exam to manage its questions.</p></div><div class="actions"><button id="downloadTemplate" class="secondary">JSON Template</button><label class="primary file-btn">Upload JSON<input id="jsonFile" type="file" accept=".json,application/json" hidden></label></div></section>
+<div id="message" class="message" hidden></div>
+<div class="layout">
+<aside class="panel"><h2>Exams</h2><div id="examList" class="exam-list"></div></aside>
+<section class="panel questions-panel"><div class="question-head"><h2 id="selectedExam">Select an exam</h2><input id="questionSearch" placeholder="Search questions..."></div><div id="questionList" class="question-list"><div class="empty">Choose an exam.</div></div></section>
+</div>
+</main>
+</div>
+<script type="module" src="admin.js?v=20261007-01"></script>
+</body></html>
