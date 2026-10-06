@@ -7,7 +7,7 @@ const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Se
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const ALLOWED_UPLOADER_EMAIL="rohit.fcg123@gmail.com";
 const GOOGLE_CLIENT_ID="195021507273-v5svc41iino6bp97ft9nbp563l3u5fa9.apps.googleusercontent.com";
-const $=id=>document.getElementById(id); let selected="",allQuestions=[];
+const $=id=>document.getElementById(id); let selected="",allQuestions=[]; let googleLoginInProgress=false;
 const persistenceReady=setPersistence(auth,browserLocalPersistence).catch(error=>console.error("Auth persistence error:",error));
 function firebaseMessage(error){
   const map={
@@ -69,7 +69,10 @@ $("jsonFile").onchange=e=>{if(e.target.files[0])upload(e.target.files[0]);e.targ
 $("questionSearch").oninput=renderQuestions;
 $("downloadTemplate").onclick=()=>{const sample=[{exam:"SSC CGL",subject:"Quantitative Aptitude",chapter:"Percentage",question:"20% of 250 is?",options:["40","50","60","70"],answerIndex:1,explanation:"250 × 20 / 100 = 50",marks:1,negativeMarks:0.25,difficulty:"Easy",source:"PYQ",year:2026,questionNo:1}];const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({questions:sample},null,2)],{type:"application/json"}));a.download="abhyas-question-template.json";a.click();URL.revokeObjectURL(a.href)};
 onAuthStateChanged(auth,async user=>{
+  // Firebase can briefly emit null while a popup login is completing.
+  // Never reset the admin UI during that transient state.
   if(!user){
+    if(googleLoginInProgress)return;
     $("loginView").hidden=false;
     $("appView").hidden=true;
     $("googleLoginBtn").disabled=false;
@@ -77,6 +80,7 @@ onAuthStateChanged(auth,async user=>{
   }
   const email=String(user.email||"").toLowerCase();
   if(email!==ALLOWED_UPLOADER_EMAIL){
+    googleLoginInProgress=false;
     await signOut(auth);
     $("loginView").hidden=false;
     $("appView").hidden=true;
@@ -85,6 +89,7 @@ onAuthStateChanged(auth,async user=>{
     return;
   }
   if(!user.emailVerified){
+    googleLoginInProgress=false;
     await signOut(auth);
     $("loginView").hidden=false;
     $("appView").hidden=true;
@@ -92,8 +97,7 @@ onAuthStateChanged(auth,async user=>{
     $("googleLoginBtn").disabled=false;
     return;
   }
-  // Authentication is successful. Do not sign the user out just because
-  // Firestore question loading fails (for example, if rules are not yet published).
+  googleLoginInProgress=false;
   $("loginView").hidden=true;
   $("appView").hidden=false;
   renderExams();
