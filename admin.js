@@ -11,6 +11,18 @@ async function initializeAuthFlow(){
   await setPersistence(auth,browserLocalPersistence);
 }
 const $=id=>document.getElementById(id); let selected="",allQuestions=[];
+function firebaseMessage(error){
+  const map={
+    "auth/unauthorized-domain":"This website domain is not authorized in Firebase Authentication. Add rohitfcg123-arch.github.io in Firebase Authentication → Settings → Authorized domains.",
+    "auth/operation-not-allowed":"Google sign-in is not enabled in Firebase Authentication. Enable Google under Authentication → Sign-in method.",
+    "auth/network-request-failed":"Network request failed. Check your internet connection.",
+    "auth/popup-blocked":"Google sign-in popup was blocked. Allow popups for this site and try again.",
+    "auth/popup-closed-by-user":"Google sign-in was cancelled. Please try again.",
+    "auth/internal-error":"Firebase could not complete Google sign-in. Please try again.",
+    "auth/account-exists-with-different-credential":"An account already exists with this email using another sign-in method."
+  };
+  return map[error?.code]||("Firebase error: "+(error?.code||"unknown")+" — "+(error?.message||"Please try again."));
+}
 function msg(t,error=false){$("message").textContent=t;$("message").hidden=false;$("message").className="message"+(error?" error":"");setTimeout(()=>{$("message").hidden=true},4500)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function examName(q){return String(q.exam||q.examName||"").trim()}
