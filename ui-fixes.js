@@ -1,4 +1,4 @@
-/* Abhyas UI fixes: preserve the current page and provide true live, partial-text search. */
+/* Abhyas UI fixes: preserve the current page and provide instant relevance-ranked partial search. */
 (()=>{
   const sectionKey="abhyas_active_section_v1";
   const qs=s=>document.querySelector(s);
@@ -11,49 +11,83 @@
   };
   const saveCurrent=()=>{const a=document.querySelector(".section.active");if(a)try{sessionStorage.setItem(sectionKey,a.id)}catch{}};
 
-  /* Search is intentionally substring-based and starts filtering from the first character.
-     Example: S -> SSC/UPSC/SBI..., SS -> SSC..., SSC -> SSC CGL/CHSL/etc. */
-  const normalize=s=>String(s||"").toLowerCase().replace(/\\s+/g," ").trim();
+  const normalize=s=>String(s||"").toLowerCase().replace(/\s+/g," ").trim();
+  const compact=s=>normalize(s).replace(/[^a-z0-9]+/g,"");
+  const fuzzySubsequence=(q,text)=>{
+    if(!q)return true;
+    let i=0;
+    for(const ch of text){if(ch===q[i])i++;if(i===q.length)return true}
+    return false;
+  };
+
+  /* Higher score = better match. Exact/prefix/word-prefix matches always beat
+     a generic contains/fuzzy match. This makes the best result jump to the top
+     immediately while the user types character-by-character. */
+  const relevance=(query,card)=>{
+    const q=normalize(query), text=normalize(card.textContent);
+    if(!q)return 0;
+    const nameEl=card.querySelector("h4,h3");
+    const name=normalize(nameEl?.textContent||text);
+    const nq=compact(q), nn=compact(name);
+    if(name===q)return 10000;
+    if(nn===nq)return 9900;
+    if(name.startsWith(q))return 9000-q.length;
+    if(nn.startsWith(nq))return 8900-q.length;
+    const words=name.split(/[^a-z0-9]+/).filter(Boolean);
+    if(words.some(w=>w.startsWith(q)))return 8000-q.length;
+    if(words.some(w=>w.startsWith(nq)))return 7900-q.length;
+    const namePos=name.indexOf(q);
+    if(namePos>=0)return 7000-namePos;
+    const compactPos=nn.indexOf(nq);
+    if(compactPos>=0)return 6900-compactPos;
+    const fullPos=text.indexOf(q);
+    if(fullPos>=0)return 5000-fullPos;
+    if(fuzzySubsequence(nq,nn))return 2000-q.length;
+    return 0;
+  };
+
+  const rankAndFilter=(container,term)=>{
+    if(!container)return [];
+    const q=normalize(term);
+    const cards=[...container.children].filter(x=>x.classList.contains("catalog-card")||x.classList.contains("series-card"));
+    const ranked=cards.map((card,index)=>({card,index,score:relevance(q,card)}));
+    ranked.forEach(x=>{x.card.hidden=!!q && x.score<=0});
+    ranked.sort((a,b)=>b.score-a.score || a.index-b.index);
+    const frag=document.createDocumentFragment();
+    ranked.forEach(x=>frag.appendChild(x.card));
+    container.appendChild(frag);
+    return ranked.filter(x=>!x.card.hidden).length;
+  };
+
   const applySearch=term=>{
     const q=normalize(term);
-    const cards=[...document.querySelectorAll("#examCatalog .catalog-card")];
-    cards.forEach(card=>{
-      const hay=normalize(card.textContent);
-      card.hidden=!!q && !hay.includes(q);
-    });
-    const visible=cards.filter(x=>!x.hidden).length;
+    const visible=rankAndFilter(qs("#examCatalog"),q);
     const count=qs("#examCount");
     if(count)count.textContent=visible+" Exam"+(visible===1?"":"s");
-
-    /* Also filter visible test-series cards using the same contains rule. */
-    const seriesCards=[...document.querySelectorAll("#seriesGrid .series-card")];
-    seriesCards.forEach(card=>{
-      const hay=normalize(card.textContent);
-      card.hidden=!!q && !hay.includes(q);
-    });
+    rankAndFilter(qs("#seriesGrid"),q);
   };
+
   const focusTests=()=>{if(document.getElementById("tests"))activate("tests")};
 
-  /* Capture phase prevents the old bubble listener from replacing the live filter. */
+  /* Capture phase keeps search responsive and prevents older handlers from
+     interfering with the live, ranked filtering. */
   document.addEventListener("input",e=>{
-    if(!e.target.matches("#globalSearch,#practiceSeriesSearch"))return;
+    if(!e.target.matches("#practiceSeriesSearch"))return;
     e.stopPropagation();
     const value=e.target.value;
-    const other=e.target.id==="globalSearch"?qs("#practiceSeriesSearch"):qs("#globalSearch");
-    if(other && other.value!==value)other.value=value;
     if(value.trim())focusTests();
     applySearch(value);
     saveCurrent();
   },true);
 
   document.addEventListener("keydown",e=>{
-    if(!e.target.matches("#globalSearch,#practiceSeriesSearch"))return;
+    if(!e.target.matches("#practiceSeriesSearch"))return;
     if(e.key==="Enter"){e.preventDefault();focusTests();applySearch(e.target.value);}
   },true);
 
-  /* Category buttons can rebuild the cards; re-apply the current search automatically. */
+  /* Category buttons can rebuild the cards; immediately re-apply the current search. */
   const observer=new MutationObserver(()=>{
-    const value=qs("#practiceSeriesSearch")?.value || qs("#globalSearch")?.value || "";
+    const value=qs("#practiceSeriesSearch")?.value||"";
     if(value)applySearch(value);
   });
   const watch=()=>{
