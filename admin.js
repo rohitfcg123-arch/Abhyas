@@ -1,56 +1,14 @@
 import {firebaseConfig} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithCredential,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Selection Post","SSC Stenographer","SSC JE","IBPS PO","IBPS Clerk","IBPS RRB PO","IBPS RRB Clerk","SBI PO","SBI Clerk","RRB NTPC","RRB Group D","RRB ALP","RRB Technician","RPF Constable","UPSC Civil Services","CDS","AFCAT","CAPF AC","CTET","KVS","DSSSB","UGC NET","State PSC","UPSSSC PET","UP Police","State Police","Insurance Exams","Nursing Exams","Judiciary Exams","CUET"];
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),googleProvider=new GoogleAuthProvider();
 googleProvider.setCustomParameters({prompt:"select_account"});
 const ALLOWED_UPLOADER_EMAIL="rohit.fcg123@gmail.com";
-const GOOGLE_CLIENT_ID="195021507273-v5svc41iino6bp97ft9nbp563l3u5fa9.apps.googleusercontent.com";
-let googleTokenClient=null;
-
 async function initializeAuthFlow(){
   await setPersistence(auth,browserLocalPersistence);
-  loadGoogleIdentityServices();
-}
-
-function loadGoogleIdentityServices(){
-  if(window.google?.accounts?.oauth2){
-    initializeGoogleTokenClient();
-    return;
-  }
-  const script=document.createElement("script");
-  script.src="https://accounts.google.com/gsi/client";
-  script.async=true;
-  script.defer=true;
-  script.onload=initializeGoogleTokenClient;
-  script.onerror=()=>{$("loginMsg").textContent="Could not load Google Sign-In. Check your internet connection.";$("googleLoginBtn").disabled=false};
-  document.head.appendChild(script);
-}
-
-function initializeGoogleTokenClient(){
-  if(!window.google?.accounts?.oauth2)return;
-  googleTokenClient=google.accounts.oauth2.initTokenClient({
-    client_id:GOOGLE_CLIENT_ID,
-    scope:"openid email profile",
-    callback:async response=>{
-      if(response?.error){
-        $("loginMsg").textContent="Google sign-in failed: "+(response.error_description||response.error);
-        $("googleLoginBtn").disabled=false;
-        return;
-      }
-      try{
-        $("loginMsg").textContent="Verifying Google account…";
-        const credential=GoogleAuthProvider.credential(null,response.access_token);
-        await signInWithCredential(auth,credential);
-      }catch(err){
-        console.error("Google credential sign-in error:",err);
-        $("loginMsg").textContent=err?.message||"Google sign-in failed.";
-        $("googleLoginBtn").disabled=false;
-      }
-    }
-  });
 }
 const $=id=>document.getElementById(id); let selected="",allQuestions=[];
 function msg(t,error=false){$("message").textContent=t;$("message").hidden=false;$("message").className="message"+(error?" error":"");setTimeout(()=>{$("message").hidden=true},4500)}
@@ -70,20 +28,13 @@ $("googleLoginBtn").addEventListener("click",async()=>{
   $("loginMsg").textContent="Opening Google sign-in…";
   try{
     await setPersistence(auth,browserLocalPersistence);
-    if(!googleTokenClient){
-      loadGoogleIdentityServices();
-      await new Promise((resolve,reject)=>{
-        const started=Date.now();
-        const timer=setInterval(()=>{
-          if(googleTokenClient){clearInterval(timer);resolve()}
-          else if(Date.now()-started>8000){clearInterval(timer);reject(new Error("Google Sign-In could not be initialized."))}
-        },100);
-      });
-    }
-    googleTokenClient.requestAccessToken({prompt:"select_account"});
+    const result=await signInWithPopup(auth,googleProvider);
+    if(!result?.user)throw new Error("Google sign-in did not return a Firebase user.");
+    if(typeof auth.authStateReady==="function")await auth.authStateReady();
+    if(!auth.currentUser)throw new Error("Firebase sign-in completed, but the session was not restored.");
   }catch(err){
-    console.error("Google Sign-In error:",err);
-    $("loginMsg").textContent=err?.message||"Google sign-in failed.";
+    console.error("Google popup sign-in error:",err);
+    $("loginMsg").textContent=firebaseMessage(err);
     $("googleLoginBtn").disabled=false;
   }
 });
