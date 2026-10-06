@@ -6,7 +6,7 @@ service cloud.firestore{
   match /testSeries/{id}{allow read:if true;allow write:if admin();}
   match /tests/{id}{allow read:if true;allow write:if admin();}
   match /questions/{id}{allow read:if true;allow create,update,delete:if admin();}
-  match /users/{uid}{allow read:if signedIn()&&request.auth.uid==uid;allow create,update:if signedIn()&&request.auth.uid==uid;allow delete:if false;}
+  match /users/{uid}{allow read:if signedIn()&&request.auth.uid==uid;allow create:if signedIn()&&request.auth.uid==uid&&request.resource.data.role=="student";allow update:if signedIn()&&request.auth.uid==uid&&request.resource.data.role==resource.data.role;allow delete:if false;}
   match /attempts/{id}{allow create:if signedIn()&&request.resource.data.userId==request.auth.uid;allow read:if signedIn()&&(resource.data.userId==request.auth.uid||admin());allow update,delete:if admin();}
  }
 }
