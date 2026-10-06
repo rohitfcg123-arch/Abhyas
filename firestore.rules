@@ -1,12 +1,130 @@
-rules_version='2';
-service cloud.firestore{
- match /databases/{database}/documents{
-  function signedIn(){return request.auth!=null;}
-  function admin(){return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role=="admin";}
-  match /testSeries/{id}{allow read:if true;allow write:if admin();}
-  match /tests/{id}{allow read:if true;allow write:if admin();}
-  match /questions/{id}{allow read:if true;allow create,update,delete:if admin();}
-  match /users/{uid}{allow read:if signedIn()&&request.auth.uid==uid;allow create:if signedIn()&&request.auth.uid==uid&&request.resource.data.role=="student";allow update:if signedIn()&&request.auth.uid==uid&&request.resource.data.role==resource.data.role;allow delete:if false;}
-  match /attempts/{id}{allow create:if signedIn()&&request.resource.data.userId==request.auth.uid;allow read:if signedIn()&&(resource.data.userId==request.auth.uid||admin());allow update,delete:if admin();}
- }
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helper functions ----------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // General Firebase Admin custom claim.
+    function isAdmin() {
+      return signedIn() &&
+             request.auth.token.admin == true;
+    }
+
+    // Question Uploader Super Admin.
+    // ONLY this verified Firebase account can create,
+    // update or delete objective and subjective questions.
+    function isQuestionUploaderAdmin() {
+      return signedIn() &&
+             request.auth.token.email == "rohit.fcg123@gmail.com" &&
+             request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return signedIn() &&
+             request.auth.uid == userId;
+    }
+
+
+    // ---------- Users ----------
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+
+    // ---------- Packages / Subscriptions ----------
+
+    match /packages/{packageId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAdmin() ||
+        (signedIn() &&
+         resource.data.userId == request.auth.uid);
+
+      allow create: if isAdmin() ||
+        (signedIn() &&
+         request.resource.data.userId == request.auth.uid);
+
+      allow update, delete: if isAdmin();
+    }
+
+
+    // ---------- Exams ----------
+
+    match /exams/{examId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // ---------- Tests / Mock Tests ----------
+
+    match /tests/{testId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // ---------- Objective Questions ----------
+
+    match /questions/{questionId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isQuestionUploaderAdmin();
+    }
+
+
+    // ---------- Subjective PYQ Questions ----------
+
+    // Student portal can read these without login.
+    // Only the Question Uploader Super Admin can modify them.
+    match /subjectiveQuestions/{questionId} {
+      allow read: if true;
+      allow create, update, delete: if isQuestionUploaderAdmin();
+    }
+
+
+    // ---------- Results ----------
+
+    match /results/{resultId} {
+      allow read: if isAdmin() ||
+        (signedIn() &&
+         resource.data.userId == request.auth.uid);
+
+      allow create: if signedIn() &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isAdmin();
+    }
+
+
+    // ---------- Attempts ----------
+
+    match /attempts/{attemptId} {
+      allow create: if signedIn() &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow read: if signedIn() &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow update, delete: if isAdmin();
+    }
+
+
+    // ---------- Deny everything else ----------
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
 }
