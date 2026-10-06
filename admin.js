@@ -1,12 +1,31 @@
 import {firebaseConfig} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithRedirect} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithRedirect,getRedirectResult} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Selection Post","SSC Stenographer","SSC JE","IBPS PO","IBPS Clerk","IBPS RRB PO","IBPS RRB Clerk","SBI PO","SBI Clerk","RRB NTPC","RRB Group D","RRB ALP","RRB Technician","RPF Constable","UPSC Civil Services","CDS","AFCAT","CAPF AC","CTET","KVS","DSSSB","UGC NET","State PSC","UPSSSC PET","UP Police","State Police","Insurance Exams","Nursing Exams","Judiciary Exams","CUET"];
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),googleProvider=new GoogleAuthProvider();
 googleProvider.setCustomParameters({prompt:"select_account"});
 const ALLOWED_UPLOADER_EMAIL="rohit.fcg123@gmail.com";
+async function handleGoogleRedirectResult(){
+  try{
+    const result=await getRedirectResult(auth);
+    if(result?.user){
+      $("loginMsg").textContent="Google sign-in successful. Verifying account…";
+    }
+  }catch(err){
+    console.error("Google redirect sign-in error:",err);
+    const code=err?.code||"";
+    const message=code==="auth/unauthorized-domain"
+      ? "This domain is not authorized in Firebase Authentication."
+      : code==="auth/operation-not-allowed"
+      ? "Google sign-in is not enabled in Firebase Authentication."
+      : (err?.message||"Google sign-in failed.");
+    $("loginMsg").textContent=message;
+    $("googleLoginBtn").disabled=false;
+  }
+}
+handleGoogleRedirectResult();
 const $=id=>document.getElementById(id); let selected="",allQuestions=[];
 function msg(t,error=false){$("message").textContent=t;$("message").hidden=false;$("message").className="message"+(error?" error":"");setTimeout(()=>{$("message").hidden=true},4500)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -24,4 +43,4 @@ $("googleLoginBtn").addEventListener("click",async()=>{try{$("googleLoginBtn").d
 $("jsonFile").onchange=e=>{if(e.target.files[0])upload(e.target.files[0]);e.target.value=""};
 $("questionSearch").oninput=renderQuestions;
 $("downloadTemplate").onclick=()=>{const sample=[{exam:"SSC CGL",subject:"Quantitative Aptitude",chapter:"Percentage",question:"20% of 250 is?",options:["40","50","60","70"],answerIndex:1,explanation:"250 × 20 / 100 = 50",marks:1,negativeMarks:0.25,difficulty:"Easy",source:"PYQ",year:2026,questionNo:1}];const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({questions:sample},null,2)],{type:"application/json"}));a.download="abhyas-question-template.json";a.click();URL.revokeObjectURL(a.href)};
-onAuthStateChanged(auth,async user=>{if(!user){$("loginView").hidden=false;$("appView").hidden=true;return}try{const email=String(user.email||"").toLowerCase();if(email!==ALLOWED_UPLOADER_EMAIL){await signOut(auth);$("loginMsg").textContent="This email is not authorized as a question uploader.";return}if(!user.emailVerified){await signOut(auth);$("loginMsg").textContent="Please use the verified Google account: "+ALLOWED_UPLOADER_EMAIL;return}$("loginView").hidden=true;$("appView").hidden=false;renderExams();await loadCounts()}catch(e){await signOut(auth);$("loginMsg").textContent="Admin verification failed: "+e.message}});
+onAuthStateChanged(auth,async user=>{if(!user){$("loginView").hidden=false;$("appView").hidden=true;return}try{const email=String(user.email||"").toLowerCase();if(email!==ALLOWED_UPLOADER_EMAIL){await signOut(auth);$("loginMsg").textContent="This email is not authorized as a question uploader.";$("googleLoginBtn").disabled=false;return}if(!user.emailVerified){await signOut(auth);$("loginMsg").textContent="Please use the verified Google account: "+ALLOWED_UPLOADER_EMAIL;$("googleLoginBtn").disabled=false;return}$("loginView").hidden=true;$("appView").hidden=false;renderExams();await loadCounts()}catch(e){await signOut(auth);$("loginMsg").textContent="Admin verification failed: "+e.message}});
