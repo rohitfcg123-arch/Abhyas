@@ -1,11 +1,12 @@
 import {firebaseConfig} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithPopup,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithCredential,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Selection Post","SSC Stenographer","SSC JE","IBPS PO","IBPS Clerk","IBPS RRB PO","IBPS RRB Clerk","SBI PO","SBI Clerk","RRB NTPC","RRB Group D","RRB ALP","RRB Technician","RPF Constable","UPSC Civil Services","CDS","AFCAT","CAPF AC","CTET","KVS","DSSSB","UGC NET","State PSC","UPSSSC PET","UP Police","State Police","Insurance Exams","Nursing Exams","Judiciary Exams","CUET"];
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const ALLOWED_UPLOADER_EMAIL="rohit.fcg123@gmail.com";
+const GOOGLE_CLIENT_ID="195021507273-v5svc41iino6bp97ft9nbp563l3u5fa9.apps.googleusercontent.com";
 const $=id=>document.getElementById(id); let selected="",allQuestions=[];
 const persistenceReady=setPersistence(auth,browserLocalPersistence).catch(error=>console.error("Auth persistence error:",error));
 function firebaseMessage(error){
@@ -33,24 +34,46 @@ async function upload(file){let raw;try{raw=JSON.parse(await file.text())}catch{
 $("loginForm").onsubmit=async e=>{e.preventDefault();$("loginMsg").textContent="Signing in…";try{await signInWithEmailAndPassword(auth,$("email").value,$("password").value)}catch(err){$("loginMsg").textContent=err.message}};
 $("logoutBtn").onclick=()=>signOut(auth);
 $("googleLoginBtn").addEventListener("click",async()=>{
-  $("googleLoginBtn").disabled=true;
+  const btn=$("googleLoginBtn");
+  btn.disabled=true;
   $("loginMsg").textContent="";
   try{
-    const googleProvider=new GoogleAuthProvider();
-    googleProvider.setCustomParameters({prompt:"select_account"});
-    const popupPromise=signInWithPopup(auth,googleProvider);
-    const result=await Promise.race([
-      popupPromise,
-      new Promise((_,reject)=>setTimeout(()=>reject(new Error("Google sign-in timed out. Please try again.")),20000))
-    ]);
-    await persistenceReady;
-    if(!result?.user)throw new Error("Google sign-in did not return a Firebase user.");
-    const email=String(result.user.email||"").toLowerCase();
+    if(!window.google?.accounts?.oauth2){
+      throw new Error("Google Sign-In is still loading. Please wait a moment and tap again.");
+    }
+    const credential=await new Promise((resolve,reject)=>{
+      let settled=false;
+      const finish=(fn,value)=>{if(settled)return;settled=true;fn(value)};
+      const client=window.google.accounts.oauth2.initTokenClient({
+        client_id:GOOGLE_CLIENT_ID,
+        scope:"openid email profile",
+        callback:response=>{
+          if(response?.error){
+            finish(reject,new Error(response.error_description||response.error));
+            return;
+          }
+          if(!response?.access_token){
+            finish(reject,new Error("Google did not return an access token."));
+            return;
+          }
+          finish(resolve,GoogleAuthProvider.credential(null,response.access_token));
+        },
+        error_callback:error=>{
+          finish(reject,new Error(error?.type||"Google sign-in popup failed."));
+        }
+      });
+      client.requestAccessToken({prompt:"select_account"});
+      setTimeout(()=>finish(reject,new Error("Google sign-in timed out. Please try again.")),20000);
+    });
+    const result=await signInWithCredential(auth,credential);
+    const user=result?.user;
+    if(!user)throw new Error("Firebase did not return a signed-in user.");
+    const email=String(user.email||"").toLowerCase();
     if(email!==ALLOWED_UPLOADER_EMAIL){
       await signOut(auth);
       throw new Error("This email is not authorized as a question uploader.");
     }
-    if(!result.user.emailVerified){
+    if(!user.emailVerified){
       await signOut(auth);
       throw new Error("Please use the verified Google account: "+ALLOWED_UPLOADER_EMAIL);
     }
@@ -59,9 +82,10 @@ $("googleLoginBtn").addEventListener("click",async()=>{
     renderExams();
     await loadCounts();
   }catch(err){
-    console.error("Google popup sign-in error:",err);
-    $("loginMsg").textContent=firebaseMessage(err);
-    $("googleLoginBtn").disabled=false;
+    console.error("Google Identity Services sign-in error:",err);
+    $("loginMsg").textContent=err.message||"Google sign-in failed.";
+  }finally{
+    btn.disabled=false;
   }
 });
 $("jsonFile").onchange=e=>{if(e.target.files[0])upload(e.target.files[0]);e.target.value=""};
