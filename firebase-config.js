@@ -1,10 +1,12 @@
-// Replace these values with Firebase Console > Project settings > Your apps > Web app.
-// Never place service-account private keys here.
+// Firebase configuration for the Abhyas web app.
+// This file contains public Firebase Web SDK configuration only.
+// Never place Firebase service-account private keys or other server secrets here.
 export const firebaseConfig={
- apiKey:"PASTE_FIREBASE_API_KEY",
- authDomain:"PASTE_PROJECT.firebaseapp.com",
- projectId:"PASTE_PROJECT_ID",
- storageBucket:"PASTE_PROJECT.firebasestorage.app",
- messagingSenderId:"PASTE_MESSAGING_SENDER_ID",
- appId:"PASTE_APP_ID"
+ apiKey:"AIzaSyAfg3w7LuDL8JyO8Y3fy1kYdXhnN-kq84U",
+ authDomain:"abhyas-8b30b.firebaseapp.com",
+ projectId:"abhyas-8b30b",
+ storageBucket:"abhyas-8b30b.firebasestorage.app",
+ messagingSenderId:"195021507273",
+ appId:"1:195021507273:web:ac43a3244cb862d4f99b18",
+ measurementId:"G-6J9XNNBE22"
 };
