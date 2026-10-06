@@ -33,7 +33,7 @@ $("loginForm").onsubmit=async e=>{e.preventDefault();$("loginMsg").textContent="
 $("logoutBtn").onclick=()=>signOut(auth);
 $("googleLoginBtn").addEventListener("click",async()=>{
   $("googleLoginBtn").disabled=true;
-  $("loginMsg").textContent="Opening Google sign-in…";
+  $("loginMsg").textContent="";
   try{
     await setPersistence(auth,browserLocalPersistence);
     const googleProvider=new GoogleAuthProvider();
