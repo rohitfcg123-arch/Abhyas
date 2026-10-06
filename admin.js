@@ -1,34 +1,57 @@
 import {firebaseConfig} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithRedirect,getRedirectResult,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithCredential,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Selection Post","SSC Stenographer","SSC JE","IBPS PO","IBPS Clerk","IBPS RRB PO","IBPS RRB Clerk","SBI PO","SBI Clerk","RRB NTPC","RRB Group D","RRB ALP","RRB Technician","RPF Constable","UPSC Civil Services","CDS","AFCAT","CAPF AC","CTET","KVS","DSSSB","UGC NET","State PSC","UPSSSC PET","UP Police","State Police","Insurance Exams","Nursing Exams","Judiciary Exams","CUET"];
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),googleProvider=new GoogleAuthProvider();
 googleProvider.setCustomParameters({prompt:"select_account"});
 const ALLOWED_UPLOADER_EMAIL="rohit.fcg123@gmail.com";
+const GOOGLE_CLIENT_ID="195021507273-v5svc41iino6bp97ft9nbp563l3u5fa9.apps.googleusercontent.com";
+let googleTokenClient=null;
+
 async function initializeAuthFlow(){
-  try{
-    await setPersistence(auth,browserLocalPersistence);
-    const result=await getRedirectResult(auth);
-    sessionStorage.removeItem("abhyasGoogleRedirectPending");
-    if(result?.user){
-      $("loginMsg").textContent="Google sign-in successful. Verifying account…";
-    }
-  }catch(err){
-    console.error("Google redirect sign-in error:",err);
-    sessionStorage.removeItem("abhyasGoogleRedirectPending");
-    const code=err?.code||"";
-    const message=code==="auth/unauthorized-domain"
-      ? "This domain is not authorized in Firebase Authentication."
-      : code==="auth/operation-not-allowed"
-      ? "Google sign-in is not enabled in Firebase Authentication."
-      : (err?.message||"Google sign-in failed.");
-    $("loginMsg").textContent=message;
-    $("googleLoginBtn").disabled=false;
-  }
+  await setPersistence(auth,browserLocalPersistence);
+  loadGoogleIdentityServices();
 }
-initializeAuthFlow();
+
+function loadGoogleIdentityServices(){
+  if(window.google?.accounts?.oauth2){
+    initializeGoogleTokenClient();
+    return;
+  }
+  const script=document.createElement("script");
+  script.src="https://accounts.google.com/gsi/client";
+  script.async=true;
+  script.defer=true;
+  script.onload=initializeGoogleTokenClient;
+  script.onerror=()=>{$("loginMsg").textContent="Could not load Google Sign-In. Check your internet connection.";$("googleLoginBtn").disabled=false};
+  document.head.appendChild(script);
+}
+
+function initializeGoogleTokenClient(){
+  if(!window.google?.accounts?.oauth2)return;
+  googleTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID,
+    scope:"openid email profile",
+    callback:async response=>{
+      if(response?.error){
+        $("loginMsg").textContent="Google sign-in failed: "+(response.error_description||response.error);
+        $("googleLoginBtn").disabled=false;
+        return;
+      }
+      try{
+        $("loginMsg").textContent="Verifying Google account…";
+        const credential=GoogleAuthProvider.credential(null,response.access_token);
+        await signInWithCredential(auth,credential);
+      }catch(err){
+        console.error("Google credential sign-in error:",err);
+        $("loginMsg").textContent=err?.message||"Google sign-in failed.";
+        $("googleLoginBtn").disabled=false;
+      }
+    }
+  });
+}
 const $=id=>document.getElementById(id); let selected="",allQuestions=[];
 function msg(t,error=false){$("message").textContent=t;$("message").hidden=false;$("message").className="message"+(error?" error":"");setTimeout(()=>{$("message").hidden=true},4500)}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -42,8 +65,29 @@ function validate(q,i){if(!q||typeof q!=="object")return "Question "+(i+1)+" is 
 async function upload(file){let raw;try{raw=JSON.parse(await file.text())}catch{return msg("Invalid JSON file.",true)}let questions=Array.isArray(raw)?raw:(Array.isArray(raw.questions)?raw.questions:[]);if(!questions.length)return msg("JSON must be an array or contain a questions array.",true);const errors=[];questions.forEach((q,i)=>{const e=validate(q,i);if(e&&errors.length<10)errors.push(e)});if(errors.length)return msg(errors.join(" | "),true);try{for(let i=0;i<questions.length;i+=450){const batch=writeBatch(db);questions.slice(i,i+450).forEach(q=>{const data={exam:examName(q),subject:String(q.subject||""),chapter:String(q.chapter||""),question:String(q.question),options:q.options.map(String),answerIndex:Number(q.answerIndex),explanation:String(q.explanation||""),marks:Number(q.marks??1),negativeMarks:Number(q.negativeMarks??0),difficulty:String(q.difficulty||"Medium"),source:String(q.source||"Uploaded"),year:q.year??"",questionNo:q.questionNo??"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()};batch.set(doc(collection(db,"questions")),data)});await batch.commit()}msg(questions.length+" questions uploaded successfully.");await loadCounts();if(selected)await selectExam(selected)}catch(e){msg("Upload failed: "+e.message,true)}}
 $("loginForm").onsubmit=async e=>{e.preventDefault();$("loginMsg").textContent="Signing in…";try{await signInWithEmailAndPassword(auth,$("email").value,$("password").value)}catch(err){$("loginMsg").textContent=err.message}};
 $("logoutBtn").onclick=()=>signOut(auth);
-$("googleLoginBtn").addEventListener("click",async()=>{try{$("googleLoginBtn").disabled=true;$("loginMsg").textContent="Opening Google sign-in…";sessionStorage.setItem("abhyasGoogleRedirectPending","1");await setPersistence(auth,browserLocalPersistence);await signInWithRedirect(auth,googleProvider)}catch(err){sessionStorage.removeItem("abhyasGoogleRedirectPending");$("loginMsg").textContent=err?.message||"Google sign-in failed.";$("googleLoginBtn").disabled=false}});
+$("googleLoginBtn").addEventListener("click",async()=>{
+  $("googleLoginBtn").disabled=true;
+  $("loginMsg").textContent="Opening Google sign-in…";
+  try{
+    await setPersistence(auth,browserLocalPersistence);
+    if(!googleTokenClient){
+      loadGoogleIdentityServices();
+      await new Promise((resolve,reject)=>{
+        const started=Date.now();
+        const timer=setInterval(()=>{
+          if(googleTokenClient){clearInterval(timer);resolve()}
+          else if(Date.now()-started>8000){clearInterval(timer);reject(new Error("Google Sign-In could not be initialized."))}
+        },100);
+      });
+    }
+    googleTokenClient.requestAccessToken({prompt:"select_account"});
+  }catch(err){
+    console.error("Google Sign-In error:",err);
+    $("loginMsg").textContent=err?.message||"Google sign-in failed.";
+    $("googleLoginBtn").disabled=false;
+  }
+});
 $("jsonFile").onchange=e=>{if(e.target.files[0])upload(e.target.files[0]);e.target.value=""};
 $("questionSearch").oninput=renderQuestions;
 $("downloadTemplate").onclick=()=>{const sample=[{exam:"SSC CGL",subject:"Quantitative Aptitude",chapter:"Percentage",question:"20% of 250 is?",options:["40","50","60","70"],answerIndex:1,explanation:"250 × 20 / 100 = 50",marks:1,negativeMarks:0.25,difficulty:"Easy",source:"PYQ",year:2026,questionNo:1}];const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({questions:sample},null,2)],{type:"application/json"}));a.download="abhyas-question-template.json";a.click();URL.revokeObjectURL(a.href)};
-onAuthStateChanged(auth,async user=>{if(!user){$("loginView").hidden=false;$("appView").hidden=true;if(sessionStorage.getItem("abhyasGoogleRedirectPending")){$("loginMsg").textContent="Google sign-in returned without a Firebase session. Check Firebase Authorized Domains and Google provider settings.";$("googleLoginBtn").disabled=false;sessionStorage.removeItem("abhyasGoogleRedirectPending")}return}try{const email=String(user.email||"").toLowerCase();if(email!==ALLOWED_UPLOADER_EMAIL){await signOut(auth);$("loginMsg").textContent="This email is not authorized as a question uploader.";$("googleLoginBtn").disabled=false;return}if(!user.emailVerified){await signOut(auth);$("loginMsg").textContent="Please use the verified Google account: "+ALLOWED_UPLOADER_EMAIL;$("googleLoginBtn").disabled=false;return}$("loginView").hidden=true;$("appView").hidden=false;renderExams();await loadCounts()}catch(e){await signOut(auth);$("loginMsg").textContent="Admin verification failed: "+e.message}});
+onAuthStateChanged(auth,async user=>{if(!user){$("loginView").hidden=false;$("appView").hidden=true;$("googleLoginBtn").disabled=false;return}try{const email=String(user.email||"").toLowerCase();if(email!==ALLOWED_UPLOADER_EMAIL){await signOut(auth);$("loginMsg").textContent="This email is not authorized as a question uploader.";$("googleLoginBtn").disabled=false;return}if(!user.emailVerified){await signOut(auth);$("loginMsg").textContent="Please use the verified Google account: "+ALLOWED_UPLOADER_EMAIL;$("googleLoginBtn").disabled=false;return}$("loginView").hidden=true;$("appView").hidden=false;renderExams();await loadCounts()}catch(e){await signOut(auth);$("loginMsg").textContent="Admin verification failed: "+e.message}});
