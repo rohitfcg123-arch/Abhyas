@@ -114,7 +114,7 @@ async function openSeries(id){
 
   if(online&&s?.exam){
     try{
-      const q=await getDocs(query(collection(db,"questions"),where("exam","==",s.exam),limit(500)));
+      const q=await getDocs(query(collection(db,"questions"),where("exam","==",s.exam),limit(1000)));
       q.forEach(d=>uploadedPool.push({id:d.id,...d.data()}));
     }catch(e){console.warn("Exam question pool unavailable",e)}
   }
@@ -130,7 +130,8 @@ async function openSeries(id){
     }catch(e){console.warn(e)}
   }
 
-  if(!tests.length)tests=demoTests(s);
+  // Live Firebase question bank is the only source of truth.
+  // Do not silently replace missing/failed data with demo 20-question tests.
   currentTests=tests;
 
   const rawPoolSize=uploadedPool.length;
@@ -150,7 +151,11 @@ async function startTest(id){
   if(!t)return;
   finishLock=false;
 
-  let qs=t.questions?.length?[...t.questions]:demoQuestions();
+  if(!Array.isArray(t.questions)||!t.questions.length){
+    toast("No uploaded questions are available for this test.");
+    return;
+  }
+  let qs=[...t.questions];
   runner={t:{...t,questions:qs},i:0,a:{},review:new Set(),seconds:(t.duration||20)*60};
   section("testRunner");
   $("runnerTitle").textContent=t.title;
@@ -176,7 +181,7 @@ async function startTest(id){
     if(!remoteQs.length&&!id.includes("-generated-")){
       const examName=series.find(x=>x.id===t.seriesId)?.exam;
       if(examName){
-        const examSnap=await getDocs(query(collection(db,"questions"),where("exam","==",examName),limit(500)));
+        const examSnap=await getDocs(query(collection(db,"questions"),where("exam","==",examName),limit(1000)));
         const pool=[];examSnap.forEach(d=>pool.push({id:d.id,...d.data()}));
         const uniquePool=shuffleQuestions(uniqueQuestionPool(pool));
 
