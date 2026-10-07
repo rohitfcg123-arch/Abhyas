@@ -35,6 +35,7 @@ $("loginForm").onsubmit=async e=>{e.preventDefault();$("loginMsg").textContent="
 $("logoutBtn").onclick=()=>signOut(auth);
 $("googleLoginBtn").addEventListener("click",async()=>{
   const btn=$("googleLoginBtn");
+  googleLoginInProgress=true;
   btn.disabled=true;
   $("loginMsg").textContent="Opening Google sign-in…";
   try{
@@ -44,8 +45,10 @@ $("googleLoginBtn").addEventListener("click",async()=>{
     const result=await signInWithPopup(auth,provider);
     if(!result?.user)throw new Error("Google sign-in did not return a Firebase user.");
     $("loginMsg").textContent="Google account verified. Opening Question Uploader…";
-    if(typeof auth.authStateReady==="function")await auth.authStateReady();
-    const user=auth.currentUser||result.user;
+    // Do not wait for auth.authStateReady() here. On some Android Chrome/Firebase
+    // combinations it can remain pending even though signInWithPopup succeeded.
+    // The popup result already contains the authenticated Firebase user.
+    const user=result.user;
     const email=String(user.email||"").toLowerCase();
     if(email!==ALLOWED_UPLOADER_EMAIL){
       await signOut(auth);
