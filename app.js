@@ -98,38 +98,64 @@ function buildExamTests(s,pool){
 }
 
 async function openSeries(id){
-  if(firebaseReady) await firebaseReady;
-  section("seriesDetail");
+  if(firebaseReady) await firebaseReady.catch(()=>{});
   let s=series.find(x=>x.id===id);
-  $("seriesDetailContent").innerHTML='<div class="detail-hero"><span class="tag">Loading</span><h2>Loading test series…</h2></div>';
-  let tests=[];
+  if(!s)return;
+
+  section("seriesDetail");
+  $("seriesDetailContent").innerHTML='<div class="detail-hero"><span class="tag">Loading</span><h2>Loading question bank…</h2><p>Please wait while the uploaded questions are loaded.</p></div>';
+
   let uploadedPool=[];
+  let loadError="";
 
-  if(online&&s?.exam){
-    try{
-      const q=await getDocs(query(collection(db,"questions"),limit(5000)));
-      q.forEach(d=>{
-        const item={id:d.id,...d.data()};
-        if(examMatches(item.exam,s.exam)) uploadedPool.push(item);
-      });
-    }catch(e){console.warn("Exam question pool unavailable",e)}
+  try{
+    if(!db){
+      throw new Error("Firebase is not initialized.");
+    }
+
+    // Question bank is the source of truth. Load it completely before
+    // rendering any test. This follows the CMA portal's pool-first flow.
+    const q=await getDocs(query(collection(db,"questions"),limit(5000)));
+    q.forEach(d=>{
+      const item={id:d.id,...d.data()};
+      if(examMatches(item.exam,s.exam)) uploadedPool.push(item);
+    });
+  }catch(e){
+    console.error("Question bank load failed:",e);
+    loadError=e?.message||"Unable to load the question bank.";
   }
 
-  if(uploadedPool.length){
-    tests=buildExamTests(s,uploadedPool);
+  const uniquePool=uniqueQuestionPool(uploadedPool);
+
+  if(loadError){
+    currentTests=[];
+    $("seriesDetailContent").innerHTML=`<div class="detail-hero"><span class="tag">Question Bank Error</span><h2>${s.title||s.exam}</h2><p>Questions could not be loaded from Firebase.</p><div class="pool-note">${loadError}</div><button class="primary small" id="retrySeries">Retry</button></div>`;
+    $("retrySeries").onclick=()=>openSeries(id);
+    return;
   }
 
+  if(!uniquePool.length){
+    currentTests=[];
+    $("seriesDetailContent").innerHTML=`<div class="detail-hero"><span class="tag">${s.category||"Exam"}</span><h2>${s.title||s.exam}</h2><p>No uploaded questions were found for <b>${s.exam}</b>.</p><div class="pool-note">Open the Question Uploader and verify that the uploaded records use exam = "${s.exam}".</div><button class="primary small" id="retrySeries">Retry</button></div>`;
+    $("retrySeries").onclick=()=>openSeries(id);
+    return;
+  }
 
+  // Exactly one full-length test. Never open a test runner with an empty pool.
+  const test={
+    id:(s.id||"series")+"-generated-full",
+    title:"Full Mock Test",
+    questionCount:uniquePool.length,
+    duration:uniquePool.length>=100?60:Math.max(20,Math.ceil(uniquePool.length*0.6)),
+    marks:uniquePool.reduce((sum,q)=>sum+Number(q.marks??1),0),
+    questions:shuffleQuestions(uniquePool),
+    seriesId:s.id,
+    free:true,
+    generatedFromExam:s.exam
+  };
+  currentTests=[test];
 
-  // Live Firebase question bank is the only source of truth.
-  // Do not silently replace missing/failed data with demo 20-question tests.
-  currentTests=tests;
-
-  const rawPoolSize=uploadedPool.length;
-  const uniquePoolSize=uniqueQuestionPool(uploadedPool).length;
-  const note=rawPoolSize ? '<div class="pool-note">Uploaded question bank: <b>'+uniquePoolSize+'</b> unique questions.</div>' : '<div class="pool-note">No uploaded questions found for this exam.</div>';
-
-  $("seriesDetailContent").innerHTML=`<div class="detail-hero"><span class="tag">${s?.category||"Test Series"}</span><h2>${s?.title||"Test Series"}</h2><p>${s?.types||"Full Mock • Sectional • PYQ"} · ${s?.lang||"Hindi / English"}</p></div>${note}<div class="test-list">${tests.map(t=>`<div class="test-row"><div><h3>${t.title}</h3><p>Timed objective test with detailed result.</p><div class="test-meta"><span>${t.questionCount||t.questions?.length||20} Questions</span><span>${t.duration||20} Minutes</span><span>${t.marks||20} Marks</span><span>${t.free?"Free":"Test"}</span></div></div><button class="primary small" data-test="${t.id}">Start Test</button></div>`).join("")}</div>`;
+  $("seriesDetailContent").innerHTML=`<div class="detail-hero"><span class="tag">${s.category||"Exam"}</span><h2>${s.title||s.exam+" Test Series"}</h2><p>Full Mock · ${s.lang||"Hindi / English"}</p></div><div class="pool-note">Uploaded question bank: <b>${uniquePool.length}</b> unique questions.</div><div class="test-list"><div class="test-row"><div><h3>Full Mock Test</h3><p>Full-length test using the uploaded ${uniquePool.length} questions.</p><div class="test-meta"><span>${uniquePool.length} Questions</span><span>${test.duration} Minutes</span><span>${test.marks} Marks</span><span>Free</span></div></div><button class="primary small" data-test="${test.id}">Start Test</button></div></div>`;
   document.querySelectorAll("[data-test]").forEach(b=>b.onclick=()=>startTest(b.dataset.test));
 }
 
@@ -143,8 +169,13 @@ async function startTest(id){
     toast("No uploaded questions are available for this test.");
     return;
   }
-  let qs=[...t.questions];
-  runner={t:{...t,questions:qs},i:0,a:{},review:new Set(),seconds:(t.duration||20)*60};
+  const qs=uniqueQuestionPool(t.questions);
+  if(!qs.length){
+    toast("No valid uploaded questions are available.");
+    return;
+  }
+  runner={t:{...t,questions:qs,questionCount:qs.length},i:0,a:{},review:new Set(),seconds:(t.duration||20)*60};
+  clearRunner();
   section("testRunner");
   $("runnerTitle").textContent=t.title;
   $("runnerSeries").textContent=series.find(x=>x.id===t.seriesId)?.title||"Abhyas Test";
@@ -200,5 +231,5 @@ $("prevBtn").onclick=()=>{if(runner?.i>0){runner.i--;persistRunner();renderRunne
 async function finish(auto){if(!runner||finishLock)return;finishLock=true;clearInterval(timer);let qs=runner.t.questions,attempted=0,correct=0;qs.forEach(q=>{if(runner.a[q.id]!==undefined){attempted++;if(+runner.a[q.id]===+(q.answerIndex??q.correctIndex??-1))correct++}});let score=qs.length?Math.round(correct/qs.length*100):0;state.questions+=attempted;state.tests++;state.attempted+=attempted;state.correct+=correct;state.streak=Math.max(1,state.streak);state.recent=[{title:runner.t.title,score,date:new Date().toLocaleDateString("en-IN")},...(state.recent||[])].slice(0,10);save();if(online&&user)try{await addDoc(collection(db,"attempts"),{userId:user.uid,testId:runner.t.id,title:runner.t.title,score,correct,wrong:attempted-correct,skipped:qs.length-attempted,total:qs.length,createdAt:serverTimestamp()})}catch(e){console.warn(e)}clearRunner();runner=null;section("result");$("resultContent").innerHTML=`<div class="result-hero"><p class="eyebrow">${auto?"TIME UP":"TEST SUBMITTED"}</p><h2>Test completed</h2><div class="score">${score}%</div><div class="result-actions"><button class="primary" data-section="tests">Take another test</button><button class="secondary" data-section="home">Go Home</button></div></div><div class="result-grid"><div class="result-box"><span>Correct</span><b>${correct}</b></div><div class="result-box"><span>Wrong</span><b>${attempted-correct}</b></div><div class="result-box"><span>Skipped</span><b>${qs.length-attempted}</b></div><div class="result-box"><span>Attempted</span><b>${attempted}/${qs.length}</b></div></div>`}
 $("examGrid").onclick=e=>{let b=e.target.closest("[data-exam]");if(b){let s=series.find(x=>x.exam===b.dataset.exam);s?openSeries(s.id):section("tests")}};$("seriesGrid").onclick=e=>{let b=e.target.closest("[data-series]");if(b)openSeries(b.dataset.series)};$("practiceExam").onchange=e=>subjects(e.target.value);
 $("practice").onclick=e=>{let b=e.target.closest("[data-practice]");if(b)toast("Practice question bank is ready for Firebase data.")};
-async function connect(){try{if(!firebaseConfig)try{firebaseConfig=(await import("./firebase-config.js")).firebaseConfig}catch{return}if(!firebaseConfig?.apiKey||firebaseConfig.apiKey.startsWith("PASTE_"))return;const [{initializeApp},{getAuth,onAuthStateChanged,signInAnonymously},{getFirestore,collection,getDocs,getDoc,doc,query,where,limit,addDoc,serverTimestamp}]=await Promise.all([import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js")]);let app=initializeApp(firebaseConfig);let auth=getAuth(app);db=getFirestore(app);online=true;onAuthStateChanged(auth,u=>user=u);try{await signInAnonymously(auth)}catch{}let q=await getDocs(query(collection(db,"testSeries"),limit(100)));let remote=[];q.forEach(d=>remote.push({id:d.id,...d.data()}));if(remote.length){series=seedSeries.map(s=>{const r=remote.find(x=>examMatches(x.exam,s.exam));return r?{...s,...r,types:"Full Mock"}:s});renderSeries()}toast("Firebase data synced")}catch(e){console.warn("Firebase sync unavailable",e)}}
+async function connect(){try{if(!firebaseConfig)try{firebaseConfig=(await import("./firebase-config.js")).firebaseConfig}catch{return}if(!firebaseConfig?.apiKey||firebaseConfig.apiKey.startsWith("PASTE_"))return;const [{initializeApp},{getAuth,onAuthStateChanged,signInAnonymously},{getFirestore,collection,getDocs,getDoc,doc,query,where,limit,addDoc,serverTimestamp}]=await Promise.all([import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js")]);let app=initializeApp(firebaseConfig);let auth=getAuth(app);db=getFirestore(app);onAuthStateChanged(auth,u=>user=u);const credential=await signInAnonymously(auth);user=credential.user;online=true;let q=await getDocs(query(collection(db,"testSeries"),limit(100)));let remote=[];q.forEach(d=>remote.push({id:d.id,...d.data()}));if(remote.length){series=seedSeries.map(s=>{const r=remote.find(x=>examMatches(x.exam,s.exam));return r?{...s,...r,types:"Full Mock"}:s});renderSeries()}toast("Firebase data synced")}catch(e){console.warn("Firebase sync unavailable",e)}}
 renderExams();categories();renderCatalog();renderSeries();subjects("SSC GD");stats();recent();$("practiceSeriesSearch")?.addEventListener("input",()=>{let active=document.querySelector("#categoryTabs .active")?.textContent||"All";renderSeries(active)});if(state.exam&&$("practiceExam")){$("practiceExam").value=state.exam;subjects(state.exam)}firebaseReady=connect();firebaseReady.catch(()=>{});setTimeout(()=>{if(!restoreRunner())clearRunner()},0);
