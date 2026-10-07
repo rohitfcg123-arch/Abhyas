@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b2a63">
+<title>Abhyas — Question Uploader</title>
+<link rel="stylesheet" href="admin.css?v=20261007-08">
+</head>
+<body>
+<div class="app" id="appView">
+<header>
+  <div><strong>Abhyas Admin</strong><span>Question Uploader</span></div>
+  <button id="logoutBtn" class="secondary">Logout</button>
+</header>
+<main>
+<section class="toolbar">
+  <div><h1>Question Uploader</h1><p id="summary">Upload and manage exam-wise questions.</p></div>
+  <div class="actions">
+    <button id="downloadTemplate" class="secondary">JSON Template</button>
+    <label class="primary file-btn">Upload JSON<input id="jsonFile" type="file" accept=".json,application/json" hidden></label>
+  </div>
+</section>
+<div id="message" class="message" hidden></div>
+<div class="layout">
+  <aside class="panel"><h2>Exams</h2><div id="examList" class="exam-list"></div></aside>
+  <section class="panel questions-panel">
+    <div class="question-head">
+      <h2 id="selectedExam">Select an exam</h2>
+      <input id="questionSearch" placeholder="Search questions...">
+    </div>
+    <div id="questionList" class="question-list"><div class="empty">Choose an exam.</div></div>
+  </section>
+</div>
+</main>
+</div>
+<div id="loading" class="login"><div class="login-card"><div class="logo">A</div><h1>Question Uploader</h1><p>Checking admin access…</p></div></div>
+<script type="module" src="question-uploader.js"></script>
+</body>
+</html>
