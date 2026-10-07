@@ -105,12 +105,7 @@ async function openSeries(id){
     tests=buildExamTests(s,uploadedPool);
   }
 
-  if(!tests.length&&online){
-    try{
-      let q=await getDocs(query(collection(db,"tests"),where("seriesId","==",id),limit(100)));
-      q.forEach(d=>tests.push({id:d.id,...d.data()}));
-    }catch(e){console.warn(e)}
-  }
+
 
   // Live Firebase question bank is the only source of truth.
   // Do not silently replace missing/failed data with demo 20-question tests.
@@ -118,10 +113,7 @@ async function openSeries(id){
 
   const rawPoolSize=uploadedPool.length;
   const uniquePoolSize=uniqueQuestionPool(uploadedPool).length;
-  const uniqueRequirement=200;
-  const note=rawPoolSize
-    ? '<div class="pool-note">Question bank: <b>'+uniquePoolSize+'</b> unique questions (from '+rawPoolSize+' uploaded records). Duplicate question text is automatically removed. '+(uniquePoolSize<uniqueRequirement?'Add at least '+(uniqueRequirement-uniquePoolSize)+' more unique questions to create all six non-repeating tests.':'All six tests can use completely different questions.')+'</div>'
-    : "";
+  const note=rawPoolSize ? '<div class="pool-note">Uploaded question bank: <b>'+uniquePoolSize+'</b> unique questions.</div>' : '<div class="pool-note">No uploaded questions found for this exam.</div>';
 
   $("seriesDetailContent").innerHTML=`<div class="detail-hero"><span class="tag">${s?.category||"Test Series"}</span><h2>${s?.title||"Test Series"}</h2><p>${s?.types||"Full Mock • Sectional • PYQ"} · ${s?.lang||"Hindi / English"}</p></div>${note}<div class="test-list">${tests.map(t=>`<div class="test-row"><div><h3>${t.title}</h3><p>Timed objective test with detailed result.</p><div class="test-meta"><span>${t.questionCount||t.questions?.length||20} Questions</span><span>${t.duration||20} Minutes</span><span>${t.marks||20} Marks</span><span>${t.free?"Free":"Test"}</span></div></div><button class="primary small" data-test="${t.id}">Start Test</button></div>`).join("")}</div>`;
   document.querySelectorAll("[data-test]").forEach(b=>b.onclick=()=>startTest(b.dataset.test));
