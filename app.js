@@ -58,9 +58,19 @@ function shuffleQuestions(list){
   }
   return a;
 }
-function normalizeQuestionKey(q){
-  return String(q?.question??q?.text??"").replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/[\\u0000-\\u001F]/g," ").replace(/\\s+/g," ").trim().toLowerCase();
+function normalizeExamName(v){
+  return String(v??"")
+    .toLowerCase()
+    .replace(/tier\s*[12]/g,"")
+    .replace(/level\s*[12]/g,"")
+    .replace(/[^a-z0-9]+/g,"")
+    .trim();
 }
+function examMatches(qExam,targetExam){
+  const a=normalizeExamName(qExam),b=normalizeExamName(targetExam);
+  return !!a&&!!b&&(a===b||a.startsWith(b)||b.startsWith(a));
+}
+
 function uniqueQuestionPool(pool){
   const seen=new Set(),out=[];
   for(const q of (pool||[])){
@@ -96,8 +106,11 @@ async function openSeries(id){
 
   if(online&&s?.exam){
     try{
-      const q=await getDocs(query(collection(db,"questions"),where("exam","==",s.exam),limit(1000)));
-      q.forEach(d=>uploadedPool.push({id:d.id,...d.data()}));
+      const q=await getDocs(query(collection(db,"questions"),limit(5000)));
+      q.forEach(d=>{
+        const item={id:d.id,...d.data()};
+        if(examMatches(item.exam,s.exam)) uploadedPool.push(item);
+      });
     }catch(e){console.warn("Exam question pool unavailable",e)}
   }
 
@@ -155,8 +168,8 @@ async function startTest(id){
     if(!remoteQs.length){
       const examName=series.find(x=>x.id===t.seriesId)?.exam;
       if(examName){
-        const examSnap=await getDocs(query(collection(db,"questions"),where("exam","==",examName),limit(1000)));
-        const pool=[];examSnap.forEach(d=>pool.push({id:d.id,...d.data()}));
+        const examSnap=await getDocs(query(collection(db,"questions"),limit(5000)));
+        const pool=[];examSnap.forEach(d=>{const item={id:d.id,...d.data()};if(examMatches(item.exam,examName))pool.push(item)});
         const uniquePool=shuffleQuestions(uniqueQuestionPool(pool));
 
         if(id.includes("-generated-")){
