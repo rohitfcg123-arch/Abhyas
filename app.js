@@ -50,8 +50,6 @@ function renderCatalog(cat="All"){let list=cat==="All"?exams:exams.filter(x=>x.c
 function renderSeries(cat="All"){let term=($("practiceSeriesSearch")?.value||"").trim().toLowerCase();let r=series.filter(x=>(cat==="All"||x.category===cat)&&(!term||[x.title,x.exam,x.category,x.types].join(" ").toLowerCase().includes(term)));$("seriesGrid").innerHTML=r.map(s=>`<article class="series-card"><div class="series-top"><span class="tag">${s.category}</span><small class="muted">Popular</small></div><h3>${s.title}</h3><p>${s.types||"Full Mock • Sectional • PYQ"}</p><div class="series-stats"><div><b>${s.total||"—"}</b><span>TESTS</span></div><div><b>${s.free||0}</b><span>FREE</span></div><div><b>${s.lang||"Hindi / English"}</b><span>LANGUAGE</span></div></div><button class="primary small" data-series="${s.id}">View Test Series</button></article>`).join("")}
 function recent(){$("recentList").innerHTML=state.recent?.length?state.recent.slice(0,5).map(x=>`<div class="recent-item"><div><b>${x.title}</b><br><small>${x.score}% · ${x.date}</small></div></div>`).join(""):'<div class="recent-item"><span class="muted">Your completed tests will appear here.</span></div>'}
 function subjects(exam){let e=exams.find(x=>x.name===exam)||exams[0];$("subjectGrid").innerHTML=e.subjects.map(s=>`<article class="subject-card"><h3>${s}</h3><p>Chapter-wise timed practice.</p><button class="primary small" data-practice="${s}">Start Practice</button></article>`).join("")}
-function demoQuestions(){return Array.from({length:20},(_,i)=>({id:"q"+i,text:["If 20% of a number is 50, the number is?","Choose the word closest in meaning to Rapid.","Find the next number: 2, 4, 8, 16, ?","Which is the largest planet?"][i%4],options:i%4===0?["200","250","300","150"]:i%4===1?["Slow","Fast","Weak","Late"]:i%4===2?["24","30","32","36"]:["Earth","Mars","Jupiter","Venus"],answerIndex:i%4===0?1:i%4===1?1:i%4===2?2:2,marks:1}))}
-function demoTests(s){return Array.from({length:6},(_,i)=>({id:s.id+"-demo-"+i,title:["Full Mock Test","Sectional Test","PYQ Pattern Test","Speed Test","Revision Test","Exam Day Special"][i],questionCount:i===0?100:20,duration:i===0?60:20,marks:i===0?100:20,questions:demoQuestions(),seriesId:s.id,free:i<2}))}
 function shuffleQuestions(list){
   const a=[...list];
   for(let i=a.length-1;i>0;i--){
@@ -123,7 +121,7 @@ async function openSeries(id){
     tests=buildExamTests(s,uploadedPool);
   }
 
-  if(!tests.length&&online&&!id.startsWith("seed-")){
+  if(!tests.length&&online){
     try{
       let q=await getDocs(query(collection(db,"tests"),where("seriesId","==",id),limit(100)));
       q.forEach(d=>tests.push({id:d.id,...d.data()}));
@@ -167,7 +165,7 @@ async function startTest(id){
   if(online)try{
     let remoteQs=[];
 
-    if(!id.includes("-demo-")&&!id.includes("-generated-")){
+    if(!id.includes("-generated-")){
       let d=await getDoc(doc(db,"tests",id));
       if(d.exists()&&d.data().questions?.length){
         remoteQs=d.data().questions.map((q,i)=>({...q,id:q.id||("remote-"+i)}));
@@ -178,7 +176,7 @@ async function startTest(id){
       }
     }
 
-    if(!remoteQs.length&&!id.includes("-generated-")){
+    if(!remoteQs.length){
       const examName=series.find(x=>x.id===t.seriesId)?.exam;
       if(examName){
         const examSnap=await getDocs(query(collection(db,"questions"),where("exam","==",examName),limit(1000)));
