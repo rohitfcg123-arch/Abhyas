@@ -60,8 +60,21 @@ function shuffleQuestions(list){
   }
   return a;
 }
+function normalizeQuestionKey(q){
+  return String(q?.question??q?.text??"").replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/[\\u0000-\\u001F]/g," ").replace(/\\s+/g," ").trim().toLowerCase();
+}
+function uniqueQuestionPool(pool){
+  const seen=new Set(),out=[];
+  for(const q of (pool||[])){
+    const key=normalizeQuestionKey(q);
+    if(!key||seen.has(key))continue;
+    seen.add(key);
+    out.push(q);
+  }
+  return out;
+}
 function buildExamTests(s,pool){
-  const source=shuffleQuestions(pool||[]);
+  const source=shuffleQuestions(uniqueQuestionPool(pool||[]));
   const tests=[];
   const specs=[
     ["Full Mock Test",100,60],
@@ -120,10 +133,11 @@ async function openSeries(id){
   if(!tests.length)tests=demoTests(s);
   currentTests=tests;
 
-  const poolSize=uploadedPool.length;
+  const rawPoolSize=uploadedPool.length;
+  const uniquePoolSize=uniqueQuestionPool(uploadedPool).length;
   const uniqueRequirement=200;
-  const note=poolSize&&poolSize<uniqueRequirement
-    ? `<div class="pool-note">Uploaded question bank: <b>${poolSize}</b> unique questions. To offer a 100-question test plus five separate 20-question tests with <b>zero question repetition</b>, at least <b>200 unique questions</b> are required.</div>`
+  const note=rawPoolSize
+    ? '<div class="pool-note">Question bank: <b>'+uniquePoolSize+'</b> unique questions (from '+rawPoolSize+' uploaded records). Duplicate question text is automatically removed. '+(uniquePoolSize<uniqueRequirement?'Add at least '+(uniqueRequirement-uniquePoolSize)+' more unique questions to create all six non-repeating tests.':'All six tests can use completely different questions.')+'</div>'
     : "";
 
   $("seriesDetailContent").innerHTML=`<div class="detail-hero"><span class="tag">${s?.category||"Test Series"}</span><h2>${s?.title||"Test Series"}</h2><p>${s?.types||"Full Mock • Sectional • PYQ"} · ${s?.lang||"Hindi / English"}</p></div>${note}<div class="test-list">${tests.map(t=>`<div class="test-row"><div><h3>${t.title}</h3><p>Timed objective test with detailed result.</p><div class="test-meta"><span>${t.questionCount||t.questions?.length||20} Questions</span><span>${t.duration||20} Minutes</span><span>${t.marks||20} Marks</span><span>${t.free?"Free":"Test"}</span></div></div><button class="primary small" data-test="${t.id}">Start Test</button></div>`).join("")}</div>`;
@@ -164,12 +178,13 @@ async function startTest(id){
       if(examName){
         const examSnap=await getDocs(query(collection(db,"questions"),where("exam","==",examName),limit(500)));
         const pool=[];examSnap.forEach(d=>pool.push({id:d.id,...d.data()}));
+        const uniquePool=shuffleQuestions(uniqueQuestionPool(pool));
 
         if(id.includes("-generated-")){
           const generatedIndex=Number(id.split("-generated-")[1]);
           const sizes=[100,20,20,20,20,20];
           const offset=sizes.slice(0,generatedIndex).reduce((a,b)=>a+b,0);
-          remoteQs=pool.slice(offset,offset+sizes[generatedIndex]);
+          remoteQs=uniquePool.slice(offset,offset+sizes[generatedIndex]);
         }else{
           remoteQs=pool.slice(0,100);
         }
