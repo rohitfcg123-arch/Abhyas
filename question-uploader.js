@@ -1,7 +1,7 @@
 import {firebaseConfig} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import {getAuth,onAuthStateChanged,signOut,setPersistence,browserLocalPersistence} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,query,where,limit,doc,writeBatch,serverTimestamp,deleteDoc} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const exams=["SSC CGL","SSC CHSL","SSC GD Constable","SSC MTS","SSC CPO","SSC Selection Post","SSC Stenographer","SSC JE","IBPS PO","IBPS Clerk","IBPS RRB PO","IBPS RRB Clerk","SBI PO","SBI Clerk","RRB NTPC","RRB Group D","RRB ALP","RRB Technician","RPF Constable","UPSC Civil Services","CDS","AFCAT","CAPF AC","CTET","KVS","DSSSB","UGC NET","State PSC","UPSSSC PET","UP Police","State Police","Insurance Exams","Nursing Exams","Judiciary Exams","CUET"];
 const ALLOWED="rohit.fcg123@gmail.com";
@@ -30,7 +30,38 @@ async function upload(file){
   if(!user)return msg("Upload blocked: no Firebase user is active. Please login again.",true);
   if(String(user.email||"").toLowerCase()!==ALLOWED||!user.emailVerified)
     return msg("Upload blocked: use the verified admin account "+ALLOWED+".",true);
-  let raw;try{raw=JSON.parse(await file.text())}catch{return msg("Invalid JSON file.",true)}let questions=Array.isArray(raw)?raw:(Array.isArray(raw.questions)?raw.questions:[]);if(!questions.length)return msg("JSON must be an array or contain a questions array.",true);const errors=[];questions.forEach((q,i)=>{const e=validate(q,i);if(e&&errors.length<10)errors.push(e)});if(errors.length)return msg(errors.join(" | "),true);try{for(let i=0;i<questions.length;i+=450){const batch=writeBatch(db);questions.slice(i,i+450).forEach(q=>batch.set(doc(collection(db,"questions")),{exam:examName(q),subject:String(q.subject||""),chapter:String(q.chapter||""),question:String(q.question),options:q.options.map(String),answerIndex:Number(q.answerIndex),explanation:String(q.explanation||""),marks:Number(q.marks??1),negativeMarks:Number(q.negativeMarks??0),difficulty:String(q.difficulty||"Medium"),source:String(q.source||"Uploaded"),year:q.year??"",questionNo:q.questionNo??"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()}));await batch.commit()}msg(questions.length+" questions uploaded successfully.");await loadCounts();if(selected)await selectExam(selected)}catch(e){console.error("Question upload error:",e);msg(firebaseUploadError(e),true)}}
+  let raw;try{raw=JSON.parse(await file.text())}catch{return msg("Invalid JSON file.",true)}let questions=Array.isArray(raw)?raw:(Array.isArray(raw.questions)?raw.questions:[]);if(!questions.length)return msg("JSON must be an array or contain a questions array.",true);const errors=[];questions.forEach((q,i)=>{const e=validate(q,i);if(e&&errors.length<10)errors.push(e)});if(errors.length)return msg(errors.join(" | "),true);try{
+  // Replacement upload: the JSON becomes the complete question bank for
+  // every exam represented in this file. Existing records for those exams
+  // are deleted first, so old/duplicate uploads cannot leak into the test.
+  const examSet=[...new Set(questions.map(examName).filter(Boolean))];
+  for(const ex of examSet){
+    const snap=await getDocs(query(collection(db,"questions"),where("exam","==",ex),limit(5000)));
+    for(let i=0;i<snap.docs.length;i+=450){
+      const batch=writeBatch(db);
+      snap.docs.slice(i,i+450).forEach(d=>batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+
+  // Remove duplicate question text inside the uploaded JSON itself.
+  const seen=new Set(),clean=[];
+  for(const q of questions){
+    const key=String(q.question).replace(/<[^>]*>/g," ").replace(/&nbsp;/gi," ").replace(/\s+/g," ").trim().toLowerCase();
+    if(!key||seen.has(key))continue;
+    seen.add(key);clean.push(q);
+  }
+
+  for(let i=0;i<clean.length;i+=450){
+    const batch=writeBatch(db);
+    clean.slice(i,i+450).forEach(q=>batch.set(doc(collection(db,"questions")),{exam:examName(q),subject:String(q.subject||""),chapter:String(q.chapter||""),question:String(q.question),options:q.options.map(String),answerIndex:Number(q.answerIndex),explanation:String(q.explanation||""),marks:Number(q.marks??1),negativeMarks:Number(q.negativeMarks??0),difficulty:String(q.difficulty||"Medium"),source:String(q.source||"Uploaded"),year:q.year??"",questionNo:q.questionNo??"",createdAt:serverTimestamp(),updatedAt:serverTimestamp()}));
+    await batch.commit();
+  }
+
+  msg(clean.length+" questions uploaded. Existing questions for "+examSet.join(", ")+" were replaced.");
+  await loadCounts();
+  if(selected)await selectExam(selected);
+}catch(e){console.error("Question replacement error:",e);msg(firebaseUploadError(e),true)}}
 $("logoutBtn").onclick=async()=>{await signOut(auth);window.location.replace("admin.html?v=18")};
 $("jsonFile").onchange=e=>{if(e.target.files[0])upload(e.target.files[0]);e.target.value=""};
 $("questionSearch").oninput=renderQuestions;
