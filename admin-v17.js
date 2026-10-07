@@ -58,10 +58,7 @@ $("googleLoginBtn").addEventListener("click",async()=>{
       await signOut(auth);
       throw new Error("Please use the verified Google account: "+ALLOWED_UPLOADER_EMAIL);
     }
-    $("loginView").hidden=true;
-    $("appView").hidden=false;
-    renderExams();
-    await loadCounts();
+    window.location.replace("question-uploader.html?v=1");
   }catch(err){
     console.error("Google sign-in error:",err);
     $("loginMsg").textContent=firebaseMessage(err);
@@ -102,13 +99,5 @@ onAuthStateChanged(auth,async user=>{
     return;
   }
   googleLoginInProgress=false;
-  $("loginView").hidden=true;
-  $("appView").hidden=false;
-  renderExams();
-  try{
-    await loadCounts();
-  }catch(e){
-    console.error("Question loading failed after authentication:",e);
-    msg("Logged in successfully, but questions could not be loaded: "+e.message,true);
-  }
+  window.location.replace("question-uploader.html?v=1");
 });
