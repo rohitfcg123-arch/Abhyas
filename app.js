@@ -1,5 +1,5 @@
 /* Abhyas Firebase-first test engine. UI renders from fast cache first; Firestore syncs in background. */
-let firebaseConfig=null;
+let firebaseConfig=null,firebaseReady=null;
 
 const exams=[
 {name:"SSC CGL",icon:"📊",category:"SSC",desc:"Combined Graduate Level",subjects:["Quantitative Aptitude","Reasoning","General Awareness","English"]},
@@ -98,6 +98,7 @@ function buildExamTests(s,pool){
 }
 
 async function openSeries(id){
+  if(firebaseReady) await firebaseReady;
   section("seriesDetail");
   let s=series.find(x=>x.id===id);
   $("seriesDetailContent").innerHTML='<div class="detail-hero"><span class="tag">Loading</span><h2>Loading test series…</h2></div>';
@@ -200,4 +201,4 @@ async function finish(auto){if(!runner||finishLock)return;finishLock=true;clearI
 $("examGrid").onclick=e=>{let b=e.target.closest("[data-exam]");if(b){let s=series.find(x=>x.exam===b.dataset.exam);s?openSeries(s.id):section("tests")}};$("seriesGrid").onclick=e=>{let b=e.target.closest("[data-series]");if(b)openSeries(b.dataset.series)};$("practiceExam").onchange=e=>subjects(e.target.value);
 $("practice").onclick=e=>{let b=e.target.closest("[data-practice]");if(b)toast("Practice question bank is ready for Firebase data.")};
 async function connect(){try{if(!firebaseConfig)try{firebaseConfig=(await import("./firebase-config.js")).firebaseConfig}catch{return}if(!firebaseConfig?.apiKey||firebaseConfig.apiKey.startsWith("PASTE_"))return;const [{initializeApp},{getAuth,onAuthStateChanged,signInAnonymously},{getFirestore,collection,getDocs,getDoc,doc,query,where,limit,addDoc,serverTimestamp}]=await Promise.all([import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js")]);let app=initializeApp(firebaseConfig);let auth=getAuth(app);db=getFirestore(app);online=true;onAuthStateChanged(auth,u=>user=u);try{await signInAnonymously(auth)}catch{}let q=await getDocs(query(collection(db,"testSeries"),limit(100)));let remote=[];q.forEach(d=>remote.push({id:d.id,...d.data()}));if(remote.length){series=seedSeries.map(s=>{const r=remote.find(x=>examMatches(x.exam,s.exam));return r?{...s,...r,types:"Full Mock"}:s});renderSeries()}toast("Firebase data synced")}catch(e){console.warn("Firebase sync unavailable",e)}}
-renderExams();categories();renderCatalog();renderSeries();subjects("SSC GD");stats();recent();$("practiceSeriesSearch")?.addEventListener("input",()=>{let active=document.querySelector("#categoryTabs .active")?.textContent||"All";renderSeries(active)});if(state.exam&&$("practiceExam")){$("practiceExam").value=state.exam;subjects(state.exam)}connect();setTimeout(()=>restoreRunner(),0);
+renderExams();categories();renderCatalog();renderSeries();subjects("SSC GD");stats();recent();$("practiceSeriesSearch")?.addEventListener("input",()=>{let active=document.querySelector("#categoryTabs .active")?.textContent||"All";renderSeries(active)});if(state.exam&&$("practiceExam")){$("practiceExam").value=state.exam;subjects(state.exam)}firebaseReady=connect();firebaseReady.catch(()=>{});setTimeout(()=>{if(!restoreRunner())clearRunner()},0);
