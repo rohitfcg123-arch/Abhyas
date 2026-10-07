@@ -159,7 +159,7 @@ async function startTest(id){
       }
     }
 
-    if(!remoteQs.length){
+    if(!remoteQs.length&&!id.includes("-generated-")){
       const examName=series.find(x=>x.id===t.seriesId)?.exam;
       if(examName){
         const examSnap=await getDocs(query(collection(db,"questions"),where("exam","==",examName),limit(500)));
