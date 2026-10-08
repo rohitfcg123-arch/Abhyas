@@ -1,5 +1,7 @@
 /* Abhyas Firebase-first test engine. UI renders from fast cache first; Firestore syncs in background. */
 let firebaseConfig=null,firebaseReady=null;
+// Firebase Firestore functions must live at module scope because openSeries(), startTest(), and finish() run outside connect().
+let fb={};
 
 const exams=[
 {name:"SSC CGL",icon:"📊",category:"SSC",desc:"Combined Graduate Level",subjects:["Quantitative Aptitude","Reasoning","General Awareness","English"]},
@@ -115,7 +117,7 @@ async function openSeries(id){
 
     // Question bank is the source of truth. Load it completely before
     // rendering any test. This follows the CMA portal's pool-first flow.
-    const q=await getDocs(query(collection(db,"questions"),limit(5000)));
+    const q=await fb.getDocs(fb.query(fb.collection(db,"questions"),fb.limit(5000)));
     q.forEach(d=>{
       const item={id:d.id,...d.data()};
       if(examMatches(item.exam,s.exam)) uploadedPool.push(item);
@@ -187,12 +189,12 @@ async function startTest(id){
     let remoteQs=[];
 
     if(!id.includes("-generated-")){
-      let d=await getDoc(doc(db,"tests",id));
+      let d=await fb.getDoc(fb.doc(db,"tests",id));
       if(d.exists()&&d.data().questions?.length){
         remoteQs=d.data().questions.map((q,i)=>({...q,id:q.id||("remote-"+i)}));
       }
       if(!remoteQs.length){
-        let q=await getDocs(query(collection(db,"questions"),where("testId","==",id),limit(100)));
+        let q=await fb.getDocs(fb.query(fb.collection(db,"questions"),fb.where("testId","==",id),fb.limit(100)));
         q.forEach(d=>remoteQs.push({id:d.id,...d.data()}));
       }
     }
@@ -200,7 +202,7 @@ async function startTest(id){
     if(!remoteQs.length){
       const examName=series.find(x=>x.id===t.seriesId)?.exam;
       if(examName){
-        const examSnap=await getDocs(query(collection(db,"questions"),limit(5000)));
+        const examSnap=await fb.getDocs(fb.query(fb.collection(db,"questions"),fb.limit(5000)));
         const pool=[];examSnap.forEach(d=>{const item={id:d.id,...d.data()};if(examMatches(item.exam,examName))pool.push(item)});
         const uniquePool=shuffleQuestions(uniqueQuestionPool(pool));
 
@@ -228,8 +230,9 @@ async function startTest(id){
 function renderTimer(){let s=Math.max(0,runner?.seconds||0);$("timer").textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
 function renderRunner(){let q=runner.t.questions[runner.i],n=runner.t.questions.length;$("questionNo").textContent="Question "+(runner.i+1)+" of "+n;$("marksInfo").textContent=(q.marks||1)+" mark";$("questionText").textContent=q.text||q.question;$("options").innerHTML=(q.options||[]).map((o,i)=>`<label class="option ${runner.a[q.id]===i?"selected":""}"><input type="radio" ${runner.a[q.id]===i?"checked":""}> <span>${String.fromCharCode(65+i)}. ${o}</span></label>`).join("");document.querySelectorAll("#options .option").forEach((e,i)=>e.onclick=()=>{if(!runner)return;runner.a[q.id]=i;persistRunner();renderRunner()});$("progressBar").style.width=((runner.i+1)/n*100)+"%";$("prevBtn").disabled=runner.i===0;$("nextBtn").textContent=runner.i===n-1?"Finish":"Next";$("markBtn").textContent=runner.review.has(q.id)?"★ Marked":"☆ Mark for review";$("paletteGrid").innerHTML=runner.t.questions.map((x,i)=>`<button class="q-btn ${runner.a[x.id]!==undefined?"answered":""} ${runner.review.has(x.id)?"review":""} ${i===runner.i?"current":""}" data-q="${i}">${i+1}</button>`).join("");document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{runner.i=+b.dataset.q;renderRunner()})}
 $("prevBtn").onclick=()=>{if(runner?.i>0){runner.i--;persistRunner();renderRunner()}};$("nextBtn").onclick=()=>{if(!runner)return;runner.i<runner.t.questions.length-1?(runner.i++,persistRunner(),renderRunner()):finish(false)};$("markBtn").onclick=()=>{if(!runner)return;let id=runner.t.questions[runner.i].id;runner.review.has(id)?runner.review.delete(id):runner.review.add(id);persistRunner();renderRunner()};$("submitBtn").onclick=()=>finish(false);
-async function finish(auto){if(!runner||finishLock)return;finishLock=true;clearInterval(timer);let qs=runner.t.questions,attempted=0,correct=0;qs.forEach(q=>{if(runner.a[q.id]!==undefined){attempted++;if(+runner.a[q.id]===+(q.answerIndex??q.correctIndex??-1))correct++}});let score=qs.length?Math.round(correct/qs.length*100):0;state.questions+=attempted;state.tests++;state.attempted+=attempted;state.correct+=correct;state.streak=Math.max(1,state.streak);state.recent=[{title:runner.t.title,score,date:new Date().toLocaleDateString("en-IN")},...(state.recent||[])].slice(0,10);save();if(online&&user)try{await addDoc(collection(db,"attempts"),{userId:user.uid,testId:runner.t.id,title:runner.t.title,score,correct,wrong:attempted-correct,skipped:qs.length-attempted,total:qs.length,createdAt:serverTimestamp()})}catch(e){console.warn(e)}clearRunner();runner=null;section("result");$("resultContent").innerHTML=`<div class="result-hero"><p class="eyebrow">${auto?"TIME UP":"TEST SUBMITTED"}</p><h2>Test completed</h2><div class="score">${score}%</div><div class="result-actions"><button class="primary" data-section="tests">Take another test</button><button class="secondary" data-section="home">Go Home</button></div></div><div class="result-grid"><div class="result-box"><span>Correct</span><b>${correct}</b></div><div class="result-box"><span>Wrong</span><b>${attempted-correct}</b></div><div class="result-box"><span>Skipped</span><b>${qs.length-attempted}</b></div><div class="result-box"><span>Attempted</span><b>${attempted}/${qs.length}</b></div></div>`}
+async function finish(auto){if(!runner||finishLock)return;finishLock=true;clearInterval(timer);let qs=runner.t.questions,attempted=0,correct=0;qs.forEach(q=>{if(runner.a[q.id]!==undefined){attempted++;if(+runner.a[q.id]===+(q.answerIndex??q.correctIndex??-1))correct++}});let score=qs.length?Math.round(correct/qs.length*100):0;state.questions+=attempted;state.tests++;state.attempted+=attempted;state.correct+=correct;state.streak=Math.max(1,state.streak);state.recent=[{title:runner.t.title,score,date:new Date().toLocaleDateString("en-IN")},...(state.recent||[])].slice(0,10);save();if(online&&user)try{await fb.addDoc(fb.collection(db,"attempts"),{userId:user.uid,testId:runner.t.id,title:runner.t.title,score,correct,wrong:attempted-correct,skipped:qs.length-attempted,total:qs.length,createdAt:fb.serverTimestamp()})}catch(e){console.warn(e)}clearRunner();runner=null;section("result");$("resultContent").innerHTML=`<div class="result-hero"><p class="eyebrow">${auto?"TIME UP":"TEST SUBMITTED"}</p><h2>Test completed</h2><div class="score">${score}%</div><div class="result-actions"><button class="primary" data-section="tests">Take another test</button><button class="secondary" data-section="home">Go Home</button></div></div><div class="result-grid"><div class="result-box"><span>Correct</span><b>${correct}</b></div><div class="result-box"><span>Wrong</span><b>${attempted-correct}</b></div><div class="result-box"><span>Skipped</span><b>${qs.length-attempted}</b></div><div class="result-box"><span>Attempted</span><b>${attempted}/${qs.length}</b></div></div>`}
 $("examGrid").onclick=e=>{let b=e.target.closest("[data-exam]");if(b){let s=series.find(x=>x.exam===b.dataset.exam);s?openSeries(s.id):section("tests")}};$("seriesGrid").onclick=e=>{let b=e.target.closest("[data-series]");if(b)openSeries(b.dataset.series)};$("practiceExam").onchange=e=>subjects(e.target.value);
 $("practice").onclick=e=>{let b=e.target.closest("[data-practice]");if(b)toast("Practice question bank is ready for Firebase data.")};
-async function connect(){try{if(!firebaseConfig)try{firebaseConfig=(await import("./firebase-config.js")).firebaseConfig}catch{return}if(!firebaseConfig?.apiKey||firebaseConfig.apiKey.startsWith("PASTE_"))return;const [{initializeApp},{getAuth,onAuthStateChanged,signInAnonymously},{getFirestore,collection,getDocs,getDoc,doc,query,where,limit,addDoc,serverTimestamp}]=await Promise.all([import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js")]);let app=initializeApp(firebaseConfig);let auth=getAuth(app);db=getFirestore(app);onAuthStateChanged(auth,u=>user=u);const credential=await signInAnonymously(auth);user=credential.user;online=true;let q=await getDocs(query(collection(db,"testSeries"),limit(100)));let remote=[];q.forEach(d=>remote.push({id:d.id,...d.data()}));if(remote.length){series=seedSeries.map(s=>{const r=remote.find(x=>examMatches(x.exam,s.exam));return r?{...s,...r,types:"Full Mock"}:s});renderSeries()}toast("Firebase data synced")}catch(e){console.warn("Firebase sync unavailable",e)}}
+async function connect(){try{if(!firebaseConfig)try{firebaseConfig=(await import("./firebase-config.js")).firebaseConfig}catch{return}if(!firebaseConfig?.apiKey||firebaseConfig.apiKey.startsWith("PASTE_"))return;const [{initializeApp},{getAuth,onAuthStateChanged,signInAnonymously},firestoreFns]=await Promise.all([import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js")]);
+Object.assign(fb,firestoreFns);let app=initializeApp(firebaseConfig);let auth=getAuth(app);db=getFirestore(app);onAuthStateChanged(auth,u=>user=u);const credential=await signInAnonymously(auth);user=credential.user;online=true;let q=await fb.getDocs(fb.query(fb.collection(db,"testSeries"),fb.limit(100)));let remote=[];q.forEach(d=>remote.push({id:d.id,...d.data()}));if(remote.length){series=seedSeries.map(s=>{const r=remote.find(x=>examMatches(x.exam,s.exam));return r?{...s,...r,types:"Full Mock"}:s});renderSeries()}toast("Firebase data synced")}catch(e){console.warn("Firebase sync unavailable",e)}}
 renderExams();categories();renderCatalog();renderSeries();subjects("SSC GD");stats();recent();$("practiceSeriesSearch")?.addEventListener("input",()=>{let active=document.querySelector("#categoryTabs .active")?.textContent||"All";renderSeries(active)});if(state.exam&&$("practiceExam")){$("practiceExam").value=state.exam;subjects(state.exam)}firebaseReady=connect();firebaseReady.catch(()=>{});clearRunner();runner=null;
