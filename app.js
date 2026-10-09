@@ -233,6 +233,65 @@ $("prevBtn").onclick=()=>{if(runner?.i>0){runner.i--;persistRunner();renderRunne
 async function finish(auto){if(!runner||finishLock)return;finishLock=true;clearInterval(timer);let qs=runner.t.questions,attempted=0,correct=0;qs.forEach(q=>{if(runner.a[q.id]!==undefined){attempted++;if(+runner.a[q.id]===+(q.answerIndex??q.correctIndex??-1))correct++}});let score=qs.length?Math.round(correct/qs.length*100):0;state.questions+=attempted;state.tests++;state.attempted+=attempted;state.correct+=correct;state.streak=Math.max(1,state.streak);state.recent=[{title:runner.t.title,score,date:new Date().toLocaleDateString("en-IN")},...(state.recent||[])].slice(0,10);save();if(online&&user)try{await fb.addDoc(fb.collection(db,"attempts"),{userId:user.uid,testId:runner.t.id,title:runner.t.title,score,correct,wrong:attempted-correct,skipped:qs.length-attempted,total:qs.length,createdAt:fb.serverTimestamp()})}catch(e){console.warn(e)}clearRunner();runner=null;section("result");$("resultContent").innerHTML=`<div class="result-hero"><p class="eyebrow">${auto?"TIME UP":"TEST SUBMITTED"}</p><h2>Test completed</h2><div class="score">${score}%</div><div class="result-actions"><button class="primary" data-section="tests">Take another test</button><button class="secondary" data-section="home">Go Home</button></div></div><div class="result-grid"><div class="result-box"><span>Correct</span><b>${correct}</b></div><div class="result-box"><span>Wrong</span><b>${attempted-correct}</b></div><div class="result-box"><span>Skipped</span><b>${qs.length-attempted}</b></div><div class="result-box"><span>Attempted</span><b>${attempted}/${qs.length}</b></div></div>`}
 $("examGrid").onclick=e=>{let b=e.target.closest("[data-exam]");if(b){let s=series.find(x=>x.exam===b.dataset.exam);s?openSeries(s.id):section("tests")}};$("seriesGrid").onclick=e=>{let b=e.target.closest("[data-series]");if(b)openSeries(b.dataset.series)};$("practiceExam").onchange=e=>subjects(e.target.value);
 $("practice").onclick=e=>{let b=e.target.closest("[data-practice]");if(b)toast("Practice question bank is ready for Firebase data.")};
-async function connect(){try{if(!firebaseConfig)try{firebaseConfig=(await import("./firebase-config.js")).firebaseConfig}catch{return}if(!firebaseConfig?.apiKey||firebaseConfig.apiKey.startsWith("PASTE_"))return;const [{initializeApp},{getAuth,onAuthStateChanged,signInAnonymously},firestoreFns]=await Promise.all([import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js")]);
-Object.assign(fb,firestoreFns);let app=initializeApp(firebaseConfig);let auth=getAuth(app);db=getFirestore(app);onAuthStateChanged(auth,u=>user=u);const credential=await signInAnonymously(auth);user=credential.user;online=true;let q=await fb.getDocs(fb.query(fb.collection(db,"testSeries"),fb.limit(100)));let remote=[];q.forEach(d=>remote.push({id:d.id,...d.data()}));if(remote.length){series=seedSeries.map(s=>{const r=remote.find(x=>examMatches(x.exam,s.exam));return r?{...s,...r,types:"Full Mock"}:s});renderSeries()}toast("Firebase data synced")}catch(e){console.warn("Firebase sync unavailable",e)}}
+async function connect(){
+  try{
+    if(!firebaseConfig){
+      try{firebaseConfig=(await import("./firebase-config.js")).firebaseConfig}
+      catch(e){console.error("Firebase config import failed:",e);return false}
+    }
+    if(!firebaseConfig?.apiKey||firebaseConfig.apiKey.startsWith("PASTE_")){
+      console.error("Firebase configuration is missing or invalid.");
+      return false;
+    }
+
+    const [{initializeApp,getApps,getApp},{getAuth,onAuthStateChanged,signInAnonymously},firestoreFns]=await Promise.all([
+      import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js")
+    ]);
+
+    Object.assign(fb,firestoreFns);
+
+    // Initialize Firestore independently of authentication. The old code
+    // could leave db=null when anonymous sign-in was disabled/failed, which
+    // produced the misleading "Firebase is not initialized" error.
+    const app=getApps().length?getApp():initializeApp(firebaseConfig);
+    db=getFirestore(app);
+    online=true;
+
+    // Authentication is needed for protected writes/attempt saving, but it
+    // must not prevent public question-bank reads from initializing Firestore.
+    try{
+      const auth=getAuth(app);
+      onAuthStateChanged(auth,u=>{user=u});
+      if(!user){
+        const credential=await signInAnonymously(auth);
+        user=credential.user;
+      }
+    }catch(authError){
+      console.warn("Anonymous authentication unavailable; Firestore read mode remains active.",authError);
+    }
+
+    try{
+      const q=await fb.getDocs(fb.query(fb.collection(db,"testSeries"),fb.limit(100)));
+      const remote=[];q.forEach(d=>remote.push({id:d.id,...d.data()}));
+      if(remote.length){
+        series=seedSeries.map(s=>{
+          const r=remote.find(x=>examMatches(x.exam,s.exam));
+          return r?{...s,...r,types:"Full Mock"}:s;
+        });
+        renderSeries();
+      }
+    }catch(seriesError){
+      console.warn("Test-series sync unavailable:",seriesError);
+    }
+
+    toast("Firebase connected");
+    return true;
+  }catch(e){
+    db=null;online=false;
+    console.error("Firebase initialization failed:",e);
+    return false;
+  }
+}
 renderExams();categories();renderCatalog();renderSeries();subjects("SSC GD");stats();recent();$("practiceSeriesSearch")?.addEventListener("input",()=>{let active=document.querySelector("#categoryTabs .active")?.textContent||"All";renderSeries(active)});if(state.exam&&$("practiceExam")){$("practiceExam").value=state.exam;subjects(state.exam)}firebaseReady=connect();firebaseReady.catch(()=>{});clearRunner();runner=null;
