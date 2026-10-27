@@ -321,7 +321,6 @@ function createYouTubePlayer(video,startAt){
    return;
   }
   const host=el('videoFrame');
-  host.innerHTML='';
   ytPlayer=new YT.Player('videoFrame',{
    videoId:video.videoId,
    width:'100%',
