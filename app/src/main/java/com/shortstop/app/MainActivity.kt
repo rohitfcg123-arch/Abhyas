@@ -286,14 +286,14 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun getBlockedChannelsJson(): String =
-            JSONArray(prefs.getStringSet(KEY_BLOCKED_CHANNELS, emptySet())?.toList() ?: emptyList()).toString()
+            JSONArray(prefs.getStringSet(KEY_BLOCKED_CHANNELS, emptySet<String>())?.toList() ?: emptyList<String>()).toString()
 
         @JavascriptInterface
         fun addBlockedChannel(channelName: String) {
             val clean = channelName.trim().replace(Regex("\\s+"), " ").take(80)
             if (clean.isBlank()) return
             synchronized(prefs) {
-                val channels = prefs.getStringSet(KEY_BLOCKED_CHANNELS, emptySet())?.toMutableSet() ?: mutableSetOf()
+                val channels = prefs.getStringSet(KEY_BLOCKED_CHANNELS, emptySet<String>())?.toMutableSet() ?: mutableSetOf<String>()
                 if (channels.none { it.equals(clean, ignoreCase = true) }) channels.add(clean)
                 prefs.edit().putStringSet(KEY_BLOCKED_CHANNELS, channels).apply()
             }
