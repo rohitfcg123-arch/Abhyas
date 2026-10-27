@@ -268,7 +268,7 @@ loadData();loadChannels();setInterval(refreshStatus,2500);
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const firebaseConfig={
  apiKey:'AIzaSyBg_BlQ--coEPqFioe00_uHEyYwUc-OHQ4',
  authDomain:'abhyas-e33b3.firebaseapp.com',
@@ -280,7 +280,47 @@ const firebaseConfig={
 };
 const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app), provider=new GoogleAuthProvider();
 let currentUser=null, savedVideos=[];
+let ytPlayer=null, currentVideo=null, progressTimer=null;
 const el=id=>document.getElementById(id);
+const progressKey=id=>'focusfence-video-progress-'+id;
+function savedPosition(video){
+ const local=Number(localStorage.getItem(progressKey(video.videoId))||0);
+ return Math.max(0,Number(video.lastPositionSec)||0,local);
+}
+function rememberPosition(seconds){
+ if(!currentVideo||!Number.isFinite(seconds)||seconds<0)return;
+ const safeSeconds=Math.floor(seconds);
+ try{localStorage.setItem(progressKey(currentVideo.videoId),String(safeSeconds))}catch(e){}
+ if(currentUser&&currentVideo.id){
+  updateDoc(doc(db,'users',currentUser.uid,'playlistVideos',currentVideo.id),{lastPositionSec:safeSeconds}).catch(()=>{});
+ }
+}
+function startProgressSaving(){
+ if(progressTimer)clearInterval(progressTimer);
+ progressTimer=setInterval(()=>{
+  try{if(ytPlayer&&ytPlayer.getPlayerState&&ytPlayer.getPlayerState()===1)rememberPosition(ytPlayer.getCurrentTime())}catch(e){}
+ },5000);
+}
+window.onYouTubeIframeAPIReady=()=>{
+ try{
+  ytPlayer=new YT.Player('videoFrame',{
+   playerVars:{playsinline:1,rel:0,enablejsapi:1},
+   events:{
+    onReady:()=>{startProgressSaving()},
+    onStateChange:event=>{
+     if(event.data===YT.PlayerState.PLAYING)startProgressSaving();
+     if(event.data===YT.PlayerState.PAUSED||event.data===YT.PlayerState.BUFFERING){
+      try{if(ytPlayer&&currentVideo)rememberPosition(ytPlayer.getCurrentTime())}catch(e){}
+     }
+     if(event.data===YT.PlayerState.ENDED){
+      try{if(currentVideo){localStorage.setItem(progressKey(currentVideo.videoId),'0');if(currentUser&&currentVideo.id)updateDoc(doc(db,'users',currentUser.uid,'playlistVideos',currentVideo.id),{lastPositionSec:0}).catch(()=>{})}}catch(e){}
+     }
+    }
+   }
+  });
+ }catch(e){}
+};
+const ytApiScript=document.createElement('script');ytApiScript.src='https://www.youtube.com/iframe_api';ytApiScript.async=true;document.head.appendChild(ytApiScript);
 let authMode='login';
 window.openAuth=(mode)=>{authMode=mode==='signup'?'signup':'login';el('authPanel').classList.add('open');el('authTitle').textContent=authMode==='signup'?'Create account':'Welcome back';el('authIntro').textContent=authMode==='signup'?'Enter your name, email and password.':'Log in with your registered email and password.';el('authNameWrap').hidden=authMode!=='signup';el('authConfirmWrap').hidden=authMode!=='signup';el('authName').required=authMode==='signup';el('authConfirm').required=authMode==='signup';el('authSubmit').textContent=authMode==='signup'?'Create account':'Login';el('authMessage').textContent='';el('authMessage').className='auth-message';};
 function friendlyAuthError(e){const c=e&&e.code;if(c==='auth/email-already-in-use')return 'This email already has an account. Please log in.';if(c==='auth/invalid-email')return 'Enter a valid email address.';if(c==='auth/weak-password')return 'Use a stronger password with at least 6 characters.';if(c==='auth/invalid-credential'||c==='auth/wrong-password'||c==='auth/user-not-found')return 'Email or password is incorrect.';if(c==='auth/operation-not-allowed')return 'Enable Email/Password in Firebase Console → Authentication → Sign-in method.';if(c==='auth/network-request-failed')return 'Network error. Check your internet.';return e&&e.message||'Authentication failed.';}
@@ -322,8 +362,18 @@ window.savePlaylistVideo=async event=>{
 };
 window.playSavedVideo=(id)=>{
  const v=savedVideos.find(x=>x.id===id);if(!v)return;
- const frame=el('videoFrame');frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(v.videoId)+'?playsinline=1&rel=0';
- frame.style.display='block';el('nowPlayingTitle').textContent=v.title;
+ currentVideo=v;
+ const frame=el('videoFrame');frame.style.display='block';
+ el('nowPlayingTitle').textContent=v.title;
+ const startAt=savedPosition(v);
+ el('playerMessage').textContent=startAt>5?'Resuming from '+Math.floor(startAt/60)+'m '+Math.floor(startAt%60)+'s…':'Starting video…';
+ try{
+  if(ytPlayer&&typeof ytPlayer.loadVideoById==='function'){
+   ytPlayer.loadVideoById({videoId:v.videoId,startSeconds:startAt});
+  }else{
+   frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(v.videoId)+'?playsinline=1&rel=0&enablejsapi=1&start='+Math.floor(startAt);
+  }
+ }catch(e){frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(v.videoId)+'?playsinline=1&rel=0&enablejsapi=1&start='+Math.floor(startAt)}
  try{const n=window.FocusFenceNative;if(n&&n.setPlayerActive)n.setPlayerActive(true)}catch(e){}
  window.closePlaylistPage();el('playerCard').scrollIntoView({behavior:'smooth',block:'start'});
 };
@@ -335,7 +385,7 @@ function renderPlaylist(){
  const box=el('playlistVideos');if(!box)return;
  if(!currentUser){box.innerHTML='<div class="playlist-message">Continue with Google to view your cloud playlist on any phone.</div>';return}
  if(!savedVideos.length){box.innerHTML='<div class="playlist-message">Your playlist is empty. Add your first video above.</div>';return}
- box.innerHTML=savedVideos.map(v=>'<div class="video-item"><div class="video-item-main"><div class="video-item-title">'+safe(v.title)+'</div><div class="video-item-url">'+safe(v.url)+'</div></div><button onclick="playSavedVideo(\''+v.id+'\')">Play</button><button onclick="deleteSavedVideo(\''+v.id+'\')">Delete</button></div>').join('');
+ box.innerHTML=savedVideos.map(v=>'<div class="video-item"><div class="video-item-main"><div class="video-item-title">'+safe(v.title)+'</div><div class="video-item-url">'+safe(v.url)+'</div><div class="video-item-url">'+(savedPosition(v)>5?'Resume at '+Math.floor(savedPosition(v)/60)+'m '+Math.floor(savedPosition(v)%60)+'s':'Not started')+'</div></div><button onclick="playSavedVideo(\''+v.id+'\')">Play</button><button onclick="deleteSavedVideo(\''+v.id+'\')">Delete</button></div>').join('');
 }
 function safe(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 </script></body></html>
