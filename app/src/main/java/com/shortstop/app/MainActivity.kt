@@ -285,6 +285,30 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun getBlockedChannelsJson(): String =
+            JSONArray(prefs.getStringSet(KEY_BLOCKED_CHANNELS, emptySet())?.toList() ?: emptyList()).toString()
+
+        @JavascriptInterface
+        fun addBlockedChannel(channelName: String) {
+            val clean = channelName.trim().replace(Regex("\\s+"), " ").take(80)
+            if (clean.isBlank()) return
+            synchronized(prefs) {
+                val channels = prefs.getStringSet(KEY_BLOCKED_CHANNELS, emptySet())?.toMutableSet() ?: mutableSetOf()
+                if (channels.none { it.equals(clean, ignoreCase = true) }) channels.add(clean)
+                prefs.edit().putStringSet(KEY_BLOCKED_CHANNELS, channels).apply()
+            }
+        }
+
+        @JavascriptInterface
+        fun removeBlockedChannel(channelName: String) {
+            synchronized(prefs) {
+                val channels = prefs.getStringSet(KEY_BLOCKED_CHANNELS, emptySet())?.toMutableSet() ?: mutableSetOf()
+                channels.removeAll { it.equals(channelName.trim(), ignoreCase = true) }
+                prefs.edit().putStringSet(KEY_BLOCKED_CHANNELS, channels).apply()
+            }
+        }
+
+        @JavascriptInterface
         fun openAccessibilitySettings() {
             runOnUiThread {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -473,5 +497,6 @@ class MainActivity : Activity() {
         private const val REMOTE_UI_URL = "https://raw.githubusercontent.com/rohitfcg123-arch/Abhyas/main/focusfence-ui/index.html"
         private const val KEY_CACHED_REMOTE_HTML = "cached_remote_ui_html"
         const val KEY_SHORTS_BLOCKING_ENABLED = "shorts_blocking_enabled"
+        const val KEY_BLOCKED_CHANNELS = "blocked_youtube_channels"
     }
 }
