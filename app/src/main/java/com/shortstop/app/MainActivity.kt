@@ -321,7 +321,7 @@ class MainActivity : Activity() {
                     }
                     setContentView(web)
                     web.loadDataWithBaseURL(
-                        "https://focusfence-ui.local/",
+                        "https://abhyasapp6-code.github.io/",
                         html!!,
                         "text/html",
                         "UTF-8",
