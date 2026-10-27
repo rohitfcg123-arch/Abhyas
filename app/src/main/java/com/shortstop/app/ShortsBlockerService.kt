@@ -27,8 +27,11 @@ class ShortsBlockerService : AccessibilityService() {
             return
         }
 
-        // Keep the original YouTube Shorts detection behaviour.
+        // Shorts blocking is independently controlled from the FocusFence UI.
         if (currentPackage != YOUTUBE_PACKAGE) return
+        val shortsEnabled = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(MainActivity.KEY_SHORTS_BLOCKING_ENABLED, true)
+        if (!shortsEnabled) return
         val root = rootInActiveWindow ?: return
         val labels = mutableListOf<String>()
         collectLabels(root, labels, 0)
