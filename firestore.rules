@@ -1,22 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each signed-in user can access only their own saved playlist.
     match /users/{userId}/playlistVideos/{videoId} {
-      allow read, create, update, delete: if request.auth != null
-        && request.auth.uid == userId
-        && (request.method != 'create' ||
-            (request.resource.data.keys().hasAll(['title', 'url', 'videoId', 'createdAt'])
-             && request.resource.data.title is string
-             && request.resource.data.title.size() > 0
-             && request.resource.data.title.size() <= 100
-             && request.resource.data.url is string
-             && request.resource.data.url.size() <= 2048
-             && request.resource.data.videoId is string
-             && request.resource.data.videoId.matches('^[A-Za-z0-9_-]{11}$'));
-      allow list: if request.auth != null && request.auth.uid == userId;
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function validVideo(data) {
+        return data.keys().hasAll(['title', 'url', 'videoId', 'createdAt'])
+          && data.title is string
+          && data.title.size() > 0
+          && data.title.size() <= 100
+          && data.url is string
+          && data.url.size() <= 2048
+          && data.videoId is string
+          && data.videoId.matches('^[A-Za-z0-9_-]{11}$');
+      }
+      allow read, delete: if isOwner();
+      allow create, update: if isOwner() && validVideo(request.resource.data);
     }
-    // Deny access to all other documents unless another explicit rule exists.
     match /{document=**} {
       allow read, write: if false;
     }
