@@ -99,7 +99,7 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
 .auth-actions{display:flex;gap:6px;margin-left:auto}.auth-panel{display:none;margin:8px 0 15px;padding:15px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}.auth-panel.open{display:block}.auth-panel h2{font-size:18px;margin:0 0 6px}.auth-panel p{font-size:12px;color:var(--muted);margin:0 0 12px}.auth-panel label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}.auth-panel input{width:100%;height:44px;border:1px solid #28334e;border-radius:11px;background:var(--bg);color:var(--white);padding:0 11px;font:inherit}.auth-panel .primary{margin-top:14px}.auth-secondary{display:flex;gap:8px;margin-top:8px}.auth-secondary button{flex:1;padding:10px 5px;border-radius:11px;background:var(--surface2);font-size:12px}.auth-message{font-size:12px;color:#ffcd78;margin-top:10px;overflow-wrap:anywhere}.auth-message.success{color:var(--mint)}
 
 #pullRefreshIndicator{position:fixed;top:0;left:50%;transform:translate(-50%,-100%);z-index:20000;padding:9px 15px;border-radius:0 0 14px 14px;background:#1e2741;color:#56e7be;border:1px solid #46516c;font-size:12px;font-weight:800;box-shadow:0 8px 20px #0004;transition:transform .16s;pointer-events:none}#pullRefreshIndicator.visible{transform:translate(-50%,0)}
-</style>
+.apps-dropdown{width:100%;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;border:1px solid #2b3550;border-radius:18px;background:#171f34;color:inherit;padding:16px;margin:20px 0 10px;font:inherit}.apps-heading{flex:1;min-width:0}.apps-heading h2{margin:0 0 5px;font-size:18px}.apps-heading p{margin:0;color:#9da9c3;font-size:13px}.apps-chevron{font-size:24px;color:#aab5d0;transition:transform .2s}.apps-dropdown[aria-expanded="true"] .apps-chevron{transform:rotate(180deg)}#appsPanel[hidden]{display:none!important}#appsPanel #search{width:100%;box-sizing:border-box;margin:4px 0 12px;padding:14px 15px;border:1px solid #303c5b;border-radius:14px;background:#0b1020;color:#f4f6ff;font:inherit;outline:none}#appsPanel #search:focus{border-color:#8b6cff}#appsPanel .list{max-height:420px;overflow-y:auto;overscroll-behavior:contain}</style>
 </head>
 <body>
 <div id="pullRefreshIndicator" aria-live="polite">↓ Pull to refresh</div>
@@ -149,13 +149,16 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
  <div id="playlistVideos"></div>
 </div>
 
-<section class="section"><div><h2>Block distracting apps</h2><p>Select any app from your phone</p></div><div id="count" class="count">0 SELECTED</div></section>
-<input id="search" type="search" placeholder="Search installed apps" autocomplete="off">
-<div id="list" class="list"><div class="empty">Loading installed apps…</div></div>
-<div id="offline" class="offline">Could not load app data. Please reopen FocusFence.</div>
-<footer class="footer">Your selection stays on this device. FocusFence sends selected apps back to Home when opened.</footer>
+<button type="button" class="section apps-dropdown" id="appsDropdown" aria-expanded="false" aria-controls="appsPanel" onclick="toggleAppsPanel()"><div class="apps-heading"><h2>Block distracting apps</h2><p>Tap to choose apps to block</p></div><span id="count" class="count">0 SELECTED</span><span class="apps-chevron">⌄</span></button>
+ <div id="appsPanel" hidden>
+ <input id="search" type="search" placeholder="🔎 Search installed apps" autocomplete="off" aria-label="Search installed apps">
+ <div id="list" class="list"><div class="empty">Loading installed apps…</div></div>
+ <div id="offline" class="offline">Could not load app data. Please reopen FocusFence.</div>
+ </div>
+ <footer class="footer">Your selection stays on this device. FocusFence sends selected apps back to Home when opened.</footer>
 <script>
 let apps=[], selected=new Set(), showAll=false;
+function toggleAppsPanel(){const p=document.getElementById("appsPanel"),b=document.getElementById("appsDropdown");const open=b.getAttribute("aria-expanded")!=="true";b.setAttribute("aria-expanded",String(open));p.hidden=!open;if(open)setTimeout(()=>document.getElementById("search").focus({preventScroll:true}),80)}
 function native(){return window.FocusFenceNative||null}
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function refreshStatus(){const n=native(), el=document.getElementById('status');if(!n){el.textContent='Protection status unavailable';return}const on=n.isProtectionEnabled();el.textContent=on?'● PROTECTION IS ON':'○ PROTECTION IS OFF';el.className='status'+(on?' on':'');try{const shorts=n.isShortsBlockingEnabled();document.getElementById('shortsToggle').checked=shorts;document.getElementById('shortsState').textContent=shorts?'Shorts blocking is enabled':'Shorts blocking is disabled'}catch(e){}}
