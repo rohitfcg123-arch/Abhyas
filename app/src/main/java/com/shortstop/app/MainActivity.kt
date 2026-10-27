@@ -170,7 +170,10 @@ class MainActivity : Activity() {
 
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {\n                showAllApps = !s.isNullOrBlank()\n                renderAppRows()\n            }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                showAllApps = !s.isNullOrBlank()
+                renderAppRows()
+            }
             override fun afterTextChanged(s: Editable?) = Unit
         })
         loadApps()
@@ -227,10 +230,11 @@ class MainActivity : Activity() {
                 setPadding(dp(12), 0, dp(6), 0)
             }
             names.addView(label(app.label, 15f, white, true))
-            names.addView(label(if (blockedPackages.contains(app.packageName)) "Blocked" else "Allowed", 11f,
+            val stateLabel = label(if (blockedPackages.contains(app.packageName)) "Blocked" else "Allowed", 11f,
                 if (blockedPackages.contains(app.packageName)) mint else muted, false).apply {
                 setPadding(0, dp(3), 0, 0)
-            })
+            }
+            names.addView(stateLabel)
             row.addView(names, LinearLayout.LayoutParams(0, -2, 1f))
             val check = CheckBox(this).apply {
                 buttonTintList = android.content.res.ColorStateList(
@@ -242,7 +246,8 @@ class MainActivity : Activity() {
                 setOnCheckedChangeListener { _, checked ->
                     if (checked) blockedPackages.add(app.packageName) else blockedPackages.remove(app.packageName)
                     persistBlockedPackages()
-                    renderAppRows()
+                    stateLabel.text = if (checked) "Blocked" else "Allowed"
+                    stateLabel.setTextColor(if (checked) mint else muted)
                     updateStatus()
                 }
             }
