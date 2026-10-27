@@ -141,7 +141,7 @@ class MainActivity : Activity() {
             setHintTextColor(muted)
             setTextColor(white)
             textSize = 15f
-            singleLine = true
+            isSingleLine = true
             compoundDrawablePadding = dp(8)
             setPadding(dp(15), 0, dp(12), 0)
             background = rounded(surface, 16)
@@ -163,7 +163,7 @@ class MainActivity : Activity() {
         footer.setPadding(dp(8), dp(17), dp(8), dp(8))
         content.addView(footer)
 
-        scroll.addView(content, ScrollView.LayoutParams(-1, -2))
+        scroll.addView(content, ViewGroup.LayoutParams(-1, -2))
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
 
@@ -182,7 +182,7 @@ class MainActivity : Activity() {
         allApps = packageManager.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
             .mapNotNull { info ->
                 val pkg = info.activityInfo?.packageName ?: return@mapNotNull null
-                if (pkg == packageName()) return@mapNotNull null
+                if (pkg == ownPackageName()) return@mapNotNull null
                 val appLabel = info.loadLabel(packageManager)?.toString()?.trim().orEmpty()
                 if (appLabel.isBlank()) null else AppEntry(pkg, appLabel)
             }
@@ -270,7 +270,7 @@ class MainActivity : Activity() {
     }
 
     private fun isServiceEnabled(): Boolean {
-        val expected = packageName() + "/" + ShortsBlockerService::class.java.name
+        val expected = ownPackageName() + "/" + ShortsBlockerService::class.java.name
         val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
         val splitter = TextUtils.SimpleStringSplitter(':')
         splitter.setString(enabled)
@@ -280,10 +280,12 @@ class MainActivity : Activity() {
         return false
     }
 
+    private fun ownPackageName(): String = applicationContext.packageName
+
     private fun loadBlockedPackages() {
         blockedPackages.clear()
         blockedPackages.addAll(prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet())?.toSet() ?: emptySet())
-        blockedPackages.remove(packageName())
+        blockedPackages.remove(ownPackageName())
     }
 
     private fun persistBlockedPackages() {
