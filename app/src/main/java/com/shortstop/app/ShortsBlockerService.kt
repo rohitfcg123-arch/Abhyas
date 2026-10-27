@@ -41,11 +41,10 @@ class ShortsBlockerService : AccessibilityService() {
         collectLabels(root, labels, 0)
         val normalised = labels.map { it.lowercase().trim().replace(Regex("\\s+"), " ") }.filter { it.isNotBlank() }
 
-        // Best-effort channel blocking: only act when the channel label and a channel/video
-        // context are visible, to reduce false positives from ordinary recommendation text.
+        // Best-effort channel blocking. Match exact visible channel labels on both
+        // channel pages and video screens. Exit YouTube to stop inline/autoplay videos
+        // as well as videos opened from a blocked channel.
         if (blockedChannels.isNotEmpty()) {
-            val channelContext = normalised.any { it.contains("subscribe") || it.contains("subscribed") } &&
-                (normalised.any { it.contains("comments") || it.contains("share") || it == "videos" })
             val matchedChannel = blockedChannels.any { channel ->
                 normalised.any { label ->
                     label == channel || label == "by $channel" ||
@@ -54,10 +53,10 @@ class ShortsBlockerService : AccessibilityService() {
                 }
             }
             val now = SystemClock.elapsedRealtime()
-            if (matchedChannel && channelContext && now - lastBlockedAt > 1400) {
+            if (matchedChannel && now - lastBlockedAt > 1800) {
                 lastBlockedAt = now
                 lastBlockedPackage = YOUTUBE_PACKAGE
-                performGlobalAction(GLOBAL_ACTION_BACK)
+                performGlobalAction(GLOBAL_ACTION_HOME)
                 return
             }
         }
