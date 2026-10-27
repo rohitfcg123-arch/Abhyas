@@ -72,10 +72,33 @@ body.pip-mode>*{display:none!important}
 body.pip-mode #playerCard{display:block!important;position:fixed;inset:0;margin:0;padding:0;border:0;border-radius:0;background:#000;z-index:9999}
 body.pip-mode #playerCard>*:not(#videoFrame){display:none!important}
 body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspect-ratio:auto;margin:0;border:0;border-radius:0}
+
+/* Account and playlist pages */
+.account-btn{margin-left:auto;flex:none;padding:9px 12px;border-radius:12px;background:#2a3453;border:1px solid #46516c;font-size:11px}
+.account-row{display:flex;align-items:center;gap:8px;margin:6px 0 14px}
+.playlist-home{margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#1e2741,#141b2d)}
+.playlist-home h2{font-size:17px;margin:0 0 6px}
+.playlist-home p{font-size:12px;line-height:1.45;color:var(--muted);margin:0 0 12px}
+.playlist-home button,.playlist-page button{border-radius:12px;background:var(--purple);padding:12px 14px;font-size:12px}
+.playlist-page{display:none;position:fixed;inset:0;z-index:10000;overflow:auto;background:var(--bg);padding:max(14px,env(safe-area-inset-top)) 14px max(22px,env(safe-area-inset-bottom))}
+.playlist-page.open{display:block}
+.playlist-page-head{display:flex;align-items:center;gap:12px;margin:4px 0 18px}
+.playlist-page-head h2{font-size:21px;margin:0}
+.playlist-page-head button{background:var(--surface2);padding:10px 13px}
+.playlist-form{padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);margin-bottom:14px}
+.playlist-form label{display:block;font-size:12px;color:var(--muted);margin:9px 0 5px}
+.playlist-form input{width:100%;height:44px;border:1px solid #28334e;border-radius:11px;background:var(--bg);color:var(--white);padding:0 11px;font:inherit;font-size:13px}
+.playlist-form button{width:100%;margin-top:12px}
+.video-item{display:flex;align-items:center;gap:10px;padding:12px;margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.video-item-main{flex:1;min-width:0}
+.video-item-title{font-size:14px;font-weight:750;overflow-wrap:anywhere}
+.video-item-url{font-size:10px;color:var(--muted);overflow-wrap:anywhere;margin-top:4px}
+.video-item button{padding:9px 10px;background:var(--surface2);font-size:11px;flex:none}
+.playlist-message{font-size:12px;line-height:1.5;color:var(--muted);margin:10px 0}
 </style>
 </head>
 <body>
-<header class="brand"><div class="logo">✓</div><div><div class="brand-name">FOCUSFENCE</div><div class="tag">YOUR ATTENTION. YOUR RULES.</div></div><div class="beta">LIVE UI</div></header>
+<header class="brand"><div class="logo">✓</div><div><div class="brand-name">FOCUSFENCE</div><div class="tag">YOUR ATTENTION. YOUR RULES.</div></div><button class="account-btn" id="loginButton" onclick="googleLogin()">Continue with Google</button></header><div class="account-row"><div id="accountStatus" class="playlist-message">Sign in to sync your playlist across phones.</div></div>
 <section class="hero"><h1>Take back your time.</h1><p>Choose the apps that distract you. We'll help you stay on track.</p><div id="status" class="status">Checking protection…</div><button class="primary" onclick="enableProtection()">Enable accessibility →</button><div class="hint">Required for app blocking to work</div></section>
 <section class="shorts-card"><div class="shorts-icon">▶</div><div class="shorts-copy"><div class="shorts-title">Block YouTube Shorts</div><div id="shortsState" class="shorts-sub">Shorts blocking is enabled</div></div><label class="switch" aria-label="Enable or disable YouTube Shorts blocking"><input id="shortsToggle" type="checkbox" checked onchange="toggleShorts(this.checked)"><span class="slider"></span></label></section>
 
@@ -90,18 +113,29 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
  <div class="channel-note">Best-effort blocking: YouTube may not expose channel names on every screen. Test with a few channels first.</div>
 </section>
 
+<section class="playlist-home">
+ <h2>▶ My YouTube Playlist</h2><p>Save video links with your own names. Sign in with Google to sync your saved videos across phones.</p>
+ <button type="button" onclick="openPlaylistPage()">Open playlist &amp; manage videos →</button>
+ <div id="playlistHomeStatus" class="playlist-message">Sign in to load your saved playlist.</div>
+</section>
 <section id="playerCard" class="player-card">
- <div class="channel-title">Watch YouTube inside FocusFence</div>
- <div class="channel-sub">Paste a public YouTube video link. It will try to play here without opening the YouTube app.</div>
- <form class="player-input" onsubmit="playVideo(event)">
-  <input id="videoUrl" type="url" inputmode="url" placeholder="https://youtube.com/watch?v=..." autocomplete="url" required>
-  <button type="submit">Play</button>
- </form>
+ <div class="channel-title">Now playing</div>
+ <div id="nowPlayingTitle" class="channel-sub">Choose a saved video from My Playlist.</div>
  <iframe id="videoFrame" class="player-frame" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
  <div id="playerMessage" class="player-message">Some videos may refuse embedding because of creator, age, region, or account restrictions.</div>
- <button class="player-login" type="button" onclick="googleLoginInfo()">Continue with Google · setup needed</button>
- <div class="player-message">Google account linking needs an OAuth Client ID configured for this app. This button explains the setup requirement; it does not sign you in yet.</div>
 </section>
+<div id="playlistPage" class="playlist-page">
+ <div class="playlist-page-head"><button type="button" onclick="closePlaylistPage()">← Home</button><h2>My Playlist</h2></div>
+ <div class="playlist-form"><div class="channel-title">Add a video</div>
+  <form onsubmit="savePlaylistVideo(event)">
+   <label for="playlistVideoName">Video name (your choice)</label><input id="playlistVideoName" maxlength="100" placeholder="e.g. Economics lecture 1" required>
+   <label for="playlistVideoUrl">YouTube video link</label><input id="playlistVideoUrl" type="url" inputmode="url" placeholder="https://youtube.com/watch?v=..." required>
+   <button type="submit">Save to playlist</button>
+  </form>
+  <div id="playlistMessage" class="playlist-message">Sign in with Google to save your playlist in Firebase.</div>
+ </div>
+ <div id="playlistVideos"></div>
+</div>
 
 <section class="section"><div><h2>Block distracting apps</h2><p>Select any app from your phone</p></div><div id="count" class="count">0 SELECTED</div></section>
 <input id="search" type="search" placeholder="Search installed apps" autocomplete="off">
@@ -179,4 +213,74 @@ function googleLoginInfo(){
 
 loadData();loadChannels();setInterval(refreshStatus,2500);
 </script>
-</body></html>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const firebaseConfig={
+ apiKey:'AIzaSyAfg3w7LuDL8JyO8O3fy1kYdXhnN-kq84U',
+ authDomain:'abhyas-8b30b.firebaseapp.com',
+ projectId:'abhyas-8b30b',
+ storageBucket:'abhyas-8b30b.firebasestorage.app',
+ messagingSenderId:'195021507273',
+ appId:'1:195021507273:web:ac43a3244cb862d4f99b18',
+ measurementId:'G-6J9XNNBE22'
+};
+const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app), provider=new GoogleAuthProvider();
+let currentUser=null, savedVideos=[];
+const el=id=>document.getElementById(id);
+function status(msg){if(el('accountStatus'))el('accountStatus').textContent=msg;if(el('playlistHomeStatus'))el('playlistHomeStatus').textContent=msg}
+window.googleLogin=async()=>{
+ try{await signInWithPopup(auth,provider)}
+ catch(e){const msg=e?.code==='auth/unauthorized-domain'?'Firebase Console → Authentication → Settings → Authorized domains mein app ka domain add karo.':(e?.message||'Google sign-in failed.');if(el('playlistMessage'))el('playlistMessage').textContent=msg;status(msg)}
+};
+window.googleLogout=async()=>{try{await signOut(auth)}catch(e){}};
+onAuthStateChanged(auth,async user=>{
+ currentUser=user;
+ const b=el('loginButton');
+ if(user){b.textContent='Sign out';b.onclick=window.googleLogout;status('Signed in: '+(user.displayName||user.email));await loadPlaylist()}
+ else{b.textContent='Continue with Google';b.onclick=window.googleLogin;savedVideos=[];renderPlaylist();status('Sign in to sync your playlist across phones.')}
+});
+async function loadPlaylist(){
+ try{
+  const q=query(collection(db,'users',currentUser.uid,'playlistVideos'),orderBy('createdAt','desc'));
+  const snap=await getDocs(q);savedVideos=snap.docs.map(d=>({id:d.id,...d.data()}));renderPlaylist();
+  status(savedVideos.length+' saved video(s) · synced with Firebase');
+  if(el('playlistMessage'))el('playlistMessage').textContent='Playlist synced to your Google account.';
+ }catch(e){const msg='Could not load playlist. Check Firestore is enabled and rules are published.';status(msg);if(el('playlistMessage'))el('playlistMessage').textContent=msg}
+}
+window.openPlaylistPage=()=>{el('playlistPage').classList.add('open');renderPlaylist();};
+window.closePlaylistPage=()=>el('playlistPage').classList.remove('open');
+window.savePlaylistVideo=async event=>{
+ event.preventDefault();
+ if(!currentUser){el('playlistMessage').textContent='First tap Continue with Google and sign in.';return}
+ const title=el('playlistVideoName').value.trim(),url=el('playlistVideoUrl').value.trim(),videoId=extractVideoId(url);
+ if(!title){return}
+ if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)){el('playlistMessage').textContent='Valid YouTube video link paste karo.';return}
+ try{
+  el('playlistMessage').textContent='Saving…';
+  await addDoc(collection(db,'users',currentUser.uid,'playlistVideos'),{title,url,videoId,createdAt:serverTimestamp()});
+  el('playlistVideoName').value='';el('playlistVideoUrl').value='';
+  await loadPlaylist();el('playlistMessage').textContent='Saved to your playlist.';
+ }catch(e){el('playlistMessage').textContent='Save failed. Check Firestore rules and sign-in.'}
+};
+window.playSavedVideo=(id)=>{
+ const v=savedVideos.find(x=>x.id===id);if(!v)return;
+ const frame=el('videoFrame');frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(v.videoId)+'?playsinline=1&rel=0';
+ frame.style.display='block';el('nowPlayingTitle').textContent=v.title;
+ try{const n=window.FocusFenceNative;if(n&&n.setPlayerActive)n.setPlayerActive(true)}catch(e){}
+ window.closePlaylistPage();el('playerCard').scrollIntoView({behavior:'smooth',block:'start'});
+};
+window.deleteSavedVideo=async id=>{
+ if(!currentUser)return;
+ try{await deleteDoc(doc(db,'users',currentUser.uid,'playlistVideos',id));await loadPlaylist()}catch(e){if(el('playlistMessage'))el('playlistMessage').textContent='Could not delete this video.'}
+};
+function renderPlaylist(){
+ const box=el('playlistVideos');if(!box)return;
+ if(!currentUser){box.innerHTML='<div class="playlist-message">Continue with Google to view your cloud playlist on any phone.</div>';return}
+ if(!savedVideos.length){box.innerHTML='<div class="playlist-message">Your playlist is empty. Add your first video above.</div>';return}
+ box.innerHTML=savedVideos.map(v=>'<div class="video-item"><div class="video-item-main"><div class="video-item-title">'+safe(v.title)+'</div><div class="video-item-url">'+safe(v.url)+'</div></div><button onclick="playSavedVideo(\''+v.id+'\')">Play</button><button onclick="deleteSavedVideo(\''+v.id+'\')">Delete</button></div>').join('');
+}
+function safe(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script></body></html>
