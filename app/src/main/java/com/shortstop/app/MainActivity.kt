@@ -20,6 +20,14 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : Activity() {
     private lateinit var status: TextView
@@ -47,7 +55,7 @@ class MainActivity : Activity() {
         window.navigationBarColor = bg
         window.decorView.systemUiVisibility = 0
         loadBlockedPackages()
-        render()
+        loadRemoteUiOrFallback()
     }
 
     override fun onResume() {
@@ -179,6 +187,95 @@ class MainActivity : Activity() {
         loadApps()
         renderAppRows()
         updateStatus()
+    }
+
+
+    private fun loadRemoteUiOrFallback() {
+        Thread {
+            var html: String? = null
+            try {
+                val connection = (URL(REMOTE_UI_URL).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 4500
+                    readTimeout = 4500
+                    requestMethod = "GET"
+                    setRequestProperty("Cache-Control", "no-cache")
+                    setRequestProperty("User-Agent", "FocusFence-Android")
+                }
+                try {
+                    if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                        html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+            } catch (_: Exception) {
+                html = null
+            }
+
+            if (html != null && html!!.contains("FOCUSFENCE")) {
+                try { loadApps() } catch (_: Exception) { }
+            }
+            runOnUiThread {
+                if (html != null && html!!.contains("FOCUSFENCE")) {
+                    val web = WebView(this)
+                    web.setBackgroundColor(bg)
+                    web.settings.javaScriptEnabled = true
+                    web.settings.domStorageEnabled = false
+                    web.settings.allowFileAccess = false
+                    web.settings.allowContentAccess = false
+                    web.settings.javaScriptCanOpenWindowsAutomatically = false
+                    web.addJavascriptInterface(FocusFenceBridge(), "FocusFenceNative")
+                    web.webViewClient = object : WebViewClient() {
+                        override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                            return true
+                        }
+                    }
+                    setContentView(web)
+                    web.loadDataWithBaseURL(
+                        "https://focusfence-ui.local/",
+                        html!!,
+                        "text/html",
+                        "UTF-8",
+                        null
+                    )
+                } else {
+                    render()
+                }
+            }
+        }.start()
+    }
+
+    private inner class FocusFenceBridge {
+        @JavascriptInterface
+        fun getAppsJson(): String {
+            val array = JSONArray()
+            allApps.forEach { app ->
+                array.put(JSONObject().put("packageName", app.packageName).put("label", app.label))
+            }
+            return array.toString()
+        }
+
+        @JavascriptInterface
+        fun getSelectedPackagesJson(): String = JSONArray(blockedPackages.toList()).toString()
+
+        @JavascriptInterface
+        fun setBlocked(packageName: String, blocked: Boolean) {
+            if (packageName == ownPackageName() || allApps.none { it.packageName == packageName }) return
+            synchronized(blockedPackages) {
+                if (blocked) blockedPackages.add(packageName) else blockedPackages.remove(packageName)
+                prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, blockedPackages.toSet()).apply()
+            }
+        }
+
+        @JavascriptInterface
+        fun isProtectionEnabled(): Boolean = isServiceEnabled()
+
+        @JavascriptInterface
+        fun openAccessibilitySettings() {
+            runOnUiThread {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+        }
     }
 
     private fun loadApps() {
@@ -359,5 +456,6 @@ class MainActivity : Activity() {
     companion object {
         const val PREFS_NAME = "shortstop_settings"
         const val KEY_BLOCKED_PACKAGES = "blocked_packages"
+        private const val REMOTE_UI_URL = "https://raw.githubusercontent.com/rohitfcg123-arch/Abhyas/main/focusfence-ui/index.html"
     }
 }
