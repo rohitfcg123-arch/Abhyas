@@ -67,6 +67,11 @@ body{width:100%;max-width:100vw;overflow-x:hidden;padding: max(10px,env(safe-are
 .player-frame{display:none;width:100%;aspect-ratio:16/9;margin-top:12px;border:0;border-radius:13px;background:#000}
 .player-message{font-size:11px;line-height:1.5;color:var(--muted);margin-top:9px}
 .player-login{width:100%;min-height:43px;margin-top:10px;border:1px solid #46516c;border-radius:12px;background:var(--surface2);font-size:12px}
+body.pip-mode{padding:0!important;overflow:hidden!important;background:#000!important}
+body.pip-mode>*{display:none!important}
+body.pip-mode #playerCard{display:block!important;position:fixed;inset:0;margin:0;padding:0;border:0;border-radius:0;background:#000;z-index:9999}
+body.pip-mode #playerCard>*:not(#videoFrame){display:none!important}
+body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspect-ratio:auto;margin:0;border:0;border-radius:0}
 </style>
 </head>
 <body>
@@ -85,7 +90,7 @@ body{width:100%;max-width:100vw;overflow-x:hidden;padding: max(10px,env(safe-are
  <div class="channel-note">Best-effort blocking: YouTube may not expose channel names on every screen. Test with a few channels first.</div>
 </section>
 
-<section class="player-card">
+<section id="playerCard" class="player-card">
  <div class="channel-title">Watch YouTube inside FocusFence</div>
  <div class="channel-sub">Paste a public YouTube video link. It will try to play here without opening the YouTube app.</div>
  <form class="player-input" onsubmit="playVideo(event)">
@@ -159,6 +164,7 @@ function playVideo(event){
  const frame=document.getElementById('videoFrame');
  if(!/^[A-Za-z0-9_-]{11}$/.test(id)){
   frame.style.display='none';frame.removeAttribute('src');
+  try{const n=native();if(n&&n.setPlayerActive)n.setPlayerActive(false)}catch(e){}
   message.textContent='Please paste a valid YouTube video link.';
   return;
  }
