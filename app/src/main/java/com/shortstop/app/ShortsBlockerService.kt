@@ -29,13 +29,40 @@ class ShortsBlockerService : AccessibilityService() {
 
         // Shorts blocking is independently controlled from the FocusFence UI.
         if (currentPackage != YOUTUBE_PACKAGE) return
-        val shortsEnabled = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
-            .getBoolean(MainActivity.KEY_SHORTS_BLOCKING_ENABLED, true)
-        if (!shortsEnabled) return
+        val preferences = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+        val shortsEnabled = preferences.getBoolean(MainActivity.KEY_SHORTS_BLOCKING_ENABLED, true)
+        val blockedChannels = preferences.getStringSet(MainActivity.KEY_BLOCKED_CHANNELS, emptySet())
+            ?.map { it.trim().lowercase().replace(Regex("\\s+"), " ") }
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+        if (!shortsEnabled && blockedChannels.isEmpty()) return
         val root = rootInActiveWindow ?: return
         val labels = mutableListOf<String>()
         collectLabels(root, labels, 0)
-        val normalised = labels.map { it.lowercase().trim() }.filter { it.isNotBlank() }
+        val normalised = labels.map { it.lowercase().trim().replace(Regex("\\s+"), " ") }.filter { it.isNotBlank() }
+
+        // Best-effort channel blocking: only act when the channel label and a channel/video
+        // context are visible, to reduce false positives from ordinary recommendation text.
+        if (blockedChannels.isNotEmpty()) {
+            val channelContext = normalised.any { it.contains("subscribe") || it.contains("subscribed") } &&
+                (normalised.any { it.contains("comments") || it.contains("share") || it == "videos" })
+            val matchedChannel = blockedChannels.any { channel ->
+                normalised.any { label ->
+                    label == channel || label == "by $channel" ||
+                        label == "channel: $channel" ||
+                        label.startsWith("$channel ·") || label.startsWith("$channel •")
+                }
+            }
+            val now = SystemClock.elapsedRealtime()
+            if (matchedChannel && channelContext && now - lastBlockedAt > 1400) {
+                lastBlockedAt = now
+                lastBlockedPackage = YOUTUBE_PACKAGE
+                performGlobalAction(GLOBAL_ACTION_BACK)
+                return
+            }
+        }
+
+        if (!shortsEnabled) return
         val signature = normalised.filter {
             it.contains("short") || it.contains("remix") || it.contains("sound") ||
                 it.contains("comment") || it.contains("dislike") || it.contains("like")
