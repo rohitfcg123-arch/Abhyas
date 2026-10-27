@@ -170,6 +170,7 @@ function playVideo(event){
  }
  frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?playsinline=1&rel=0';
  frame.style.display='block';
+ try{const n=native();if(n&&n.setPlayerActive)n.setPlayerActive(true)}catch(e){}
  message.textContent='Loading video… If playback is blocked, that video may not allow embedding.';
 }
 function googleLoginInfo(){
