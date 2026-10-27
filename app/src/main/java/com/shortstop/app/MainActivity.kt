@@ -32,6 +32,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.CookieManager
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -328,6 +329,17 @@ class MainActivity : Activity() {
                             popup.settings.domStorageEnabled = true
                             popup.settings.javaScriptCanOpenWindowsAutomatically = true
                             popup.settings.setSupportMultipleWindows(true)
+                            CookieManager.getInstance().setAcceptCookie(true)
+                            CookieManager.getInstance().setAcceptThirdPartyCookies(popup, true)
+                            popup.webViewClient = object : WebViewClient() {
+                                override fun shouldOverrideUrlLoading(
+                                    view: WebView?,
+                                    request: WebResourceRequest?
+                                ): Boolean {
+                                    // Allow the Firebase/Google OAuth redirect chain to load in the popup.
+                                    return false
+                                }
+                            }
                             val popupDialog = Dialog(this@MainActivity)
                             popup.webChromeClient = object : WebChromeClient() {
                                 override fun onCloseWindow(window: WebView?) {
