@@ -213,6 +213,11 @@ class MainActivity : Activity() {
             }
 
             if (html != null && html!!.contains("FOCUSFENCE")) {
+                prefs.edit().putString(KEY_CACHED_REMOTE_HTML, html).apply()
+            } else {
+                html = prefs.getString(KEY_CACHED_REMOTE_HTML, null)
+            }
+            if (html != null && html!!.contains("FOCUSFENCE")) {
                 try { loadApps() } catch (_: Exception) { }
             }
             runOnUiThread {
@@ -457,5 +462,6 @@ class MainActivity : Activity() {
         const val PREFS_NAME = "shortstop_settings"
         const val KEY_BLOCKED_PACKAGES = "blocked_packages"
         private const val REMOTE_UI_URL = "https://raw.githubusercontent.com/rohitfcg123-arch/Abhyas/main/focusfence-ui/index.html"
+        private const val KEY_CACHED_REMOTE_HTML = "cached_remote_ui_html"
     }
 }
