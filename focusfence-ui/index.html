@@ -47,12 +47,36 @@ body{width:100%;max-width:100vw;overflow-x:hidden;padding: max(10px,env(safe-are
  .section>div:first-child{flex-basis:155px}
 }
 
+
+.channel-card{margin-top:12px;padding:15px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.channel-title{font-size:14px;font-weight:800}
+.channel-sub{font-size:11px;line-height:1.45;color:var(--muted);margin-top:4px}
+.channel-entry{display:flex;gap:8px;margin-top:12px}
+.channel-entry input{min-width:0;flex:1;height:43px;border:1px solid #28334e;border-radius:12px;background:var(--bg);color:var(--white);padding:0 11px;font:inherit;font-size:13px}
+.channel-entry button{padding:0 14px;border-radius:12px;background:var(--purple);font-size:12px}
+.channel-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.channel-chip{display:flex;align-items:center;gap:7px;max-width:100%;padding:7px 9px;border-radius:11px;background:var(--surface2);font-size:12px;overflow-wrap:anywhere}
+.channel-chip button{background:transparent;color:#ff9ba8;padding:0;font-size:17px;line-height:1}
+.channel-note{font-size:10px;line-height:1.45;color:var(--muted);margin-top:10px}
+
 </style>
 </head>
 <body>
 <header class="brand"><div class="logo">✓</div><div><div class="brand-name">FOCUSFENCE</div><div class="tag">YOUR ATTENTION. YOUR RULES.</div></div><div class="beta">LIVE UI</div></header>
 <section class="hero"><h1>Take back your time.</h1><p>Choose the apps that distract you. We'll help you stay on track.</p><div id="status" class="status">Checking protection…</div><button class="primary" onclick="enableProtection()">Enable accessibility →</button><div class="hint">Required for app blocking to work</div></section>
 <section class="shorts-card"><div class="shorts-icon">▶</div><div class="shorts-copy"><div class="shorts-title">Block YouTube Shorts</div><div id="shortsState" class="shorts-sub">Shorts blocking is enabled</div></div><label class="switch" aria-label="Enable or disable YouTube Shorts blocking"><input id="shortsToggle" type="checkbox" checked onchange="toggleShorts(this.checked)"><span class="slider"></span></label></section>
+
+<section class="channel-card">
+ <div class="channel-title">Block YouTube channels</div>
+ <div class="channel-sub">Add channel names you want FocusFence to block in the YouTube app.</div>
+ <form class="channel-entry" onsubmit="addChannel(event)">
+  <input id="channelInput" type="text" maxlength="80" placeholder="Enter exact channel name" autocomplete="off">
+  <button type="submit">Add</button>
+ </form>
+ <div id="channelList" class="channel-list"></div>
+ <div class="channel-note">Best-effort blocking: YouTube may not expose channel names on every screen. Test with a few channels first.</div>
+</section>
+
 <section class="section"><div><h2>Block distracting apps</h2><p>Select any app from your phone</p></div><div id="count" class="count">0 SELECTED</div></section>
 <input id="search" type="search" placeholder="Search installed apps" autocomplete="off">
 <div id="list" class="list"><div class="empty">Loading installed apps…</div></div>
@@ -69,6 +93,30 @@ function toggleApp(pkg,checked){const n=native();if(!n)return;try{n.setBlocked(p
 function toggleShorts(enabled){const n=native();if(!n)return;try{n.setShortsBlockingEnabled(enabled);document.getElementById('shortsState').textContent=enabled?'Shorts blocking is enabled':'Shorts blocking is disabled'}catch(e){document.getElementById('shortsToggle').checked=!enabled}}
 function enableProtection(){const n=native();if(n)n.openAccessibilitySettings()}
 document.getElementById('search').addEventListener('input',()=>{showAll=!!document.getElementById('search').value.trim();draw()});
-loadData();setInterval(refreshStatus,2500);
+
+let blockedChannels=[];
+function renderChannels(){
+ const box=document.getElementById('channelList');
+ if(!box)return;
+ box.innerHTML=blockedChannels.map((name,i)=>'<span class="channel-chip">'+escapeHtml(name)+'<button type="button" aria-label="Remove '+escapeHtml(name)+'" onclick="removeChannel('+i+')">×</button></span>').join('');
+}
+function loadChannels(){
+ try{const n=native();blockedChannels=n?JSON.parse(n.getBlockedChannelsJson()):[];renderChannels()}catch(e){blockedChannels=[];renderChannels()}
+}
+function addChannel(event){
+ event.preventDefault();
+ const input=document.getElementById('channelInput');
+ const name=input.value.trim().replace(/\s+/g,' ');
+ if(!name)return;
+ if(blockedChannels.some(x=>x.toLocaleLowerCase()===name.toLocaleLowerCase())){input.value='';return}
+ const n=native();if(!n)return;
+ try{n.addBlockedChannel(name);blockedChannels.push(name);input.value='';renderChannels()}catch(e){}
+}
+function removeChannel(index){
+ const name=blockedChannels[index],n=native();if(!name||!n)return;
+ try{n.removeBlockedChannel(name);blockedChannels.splice(index,1);renderChannels()}catch(e){}
+}
+
+loadData();loadChannels();setInterval(refreshStatus,2500);
 </script>
 </body></html>
