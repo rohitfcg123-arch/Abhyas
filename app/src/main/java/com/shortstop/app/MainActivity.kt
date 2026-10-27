@@ -29,6 +29,7 @@ class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences(PREFS_NAME, MODE_PRIVATE) }
     private val blockedPackages = mutableSetOf<String>()
     private var allApps: List<AppEntry> = emptyList()
+    private var showAllApps = false
 
     private data class AppEntry(val packageName: String, val label: String)
 
@@ -55,7 +56,7 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
-        val pad = dp(20)
+        val pad = dp(16)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bg)
@@ -97,9 +98,9 @@ class MainActivity : Activity() {
             background = roundedGradient(
                 intArrayOf(Color.rgb(43, 43, 91), Color.rgb(27, 46, 78)), 26
             )
-            setPadding(dp(20), dp(22), dp(20), dp(20))
+            setPadding(dp(16), dp(15), dp(16), dp(15))
         }
-        hero.addView(label("Take back your time.", 27f, white, true))
+        hero.addView(label("Take back your time.", 23f, white, true))
         hero.addView(label("Choose the apps that distract you.\nWe'll help you stay on track.", 14f, Color.rgb(205, 211, 238), false).apply {
             setPadding(0, dp(8), 0, dp(18))
             setLineSpacing(dp(3).toFloat(), 1f)
@@ -117,14 +118,14 @@ class MainActivity : Activity() {
         warning.setPadding(0, dp(8), 0, 0)
         hero.addView(warning)
         val heroParams = LinearLayout.LayoutParams(-1, -2).apply {
-            topMargin = dp(22)
+            topMargin = dp(12)
         }
         content.addView(hero, heroParams)
 
         val sectionRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(25), 0, dp(12))
+            setPadding(0, dp(17), 0, dp(10))
         }
         val sectionTitle = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         sectionTitle.addView(label("Block distracting apps", 20f, white, true))
@@ -169,7 +170,7 @@ class MainActivity : Activity() {
 
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = renderAppRows()
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {\n                showAllApps = !s.isNullOrBlank()\n                renderAppRows()\n            }
             override fun afterTextChanged(s: Editable?) = Unit
         })
         loadApps()
@@ -195,6 +196,7 @@ class MainActivity : Activity() {
         appList.removeAllViews()
         val query = if (::search.isInitialized) search.text.toString().trim().lowercase() else ""
         val visibleApps = allApps.filter { it.label.lowercase().contains(query) }
+        val displayApps = if (showAllApps || query.isNotBlank()) visibleApps else visibleApps.take(25)
         if (visibleApps.isEmpty()) {
             appList.addView(label("No apps match your search.", 14f, muted, false).apply {
                 gravity = Gravity.CENTER
@@ -203,7 +205,7 @@ class MainActivity : Activity() {
             updateCount()
             return
         }
-        visibleApps.forEachIndexed { index, app ->
+        displayApps.forEachIndexed { index, app ->
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -247,7 +249,7 @@ class MainActivity : Activity() {
             row.addView(check)
             row.setOnClickListener { check.isChecked = !check.isChecked }
             appList.addView(row, LinearLayout.LayoutParams(-1, -2))
-            if (index < visibleApps.lastIndex) {
+            if (index < displayApps.lastIndex) {
                 val divider = View(this).apply { setBackgroundColor(Color.rgb(43, 51, 73)) }
                 appList.addView(divider, LinearLayout.LayoutParams(-1, dp(1)))
             }
