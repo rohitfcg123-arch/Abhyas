@@ -1,6 +1,7 @@
 package com.shortstop.app
 
 import android.app.Activity
+import android.app.Dialog
 import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -9,6 +10,7 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Message
 import android.os.Build
 import android.util.Rational
 import android.provider.Settings
@@ -298,10 +300,11 @@ class MainActivity : Activity() {
                     playerWebView = web
                     web.setBackgroundColor(bg)
                     web.settings.javaScriptEnabled = true
-                    web.settings.domStorageEnabled = false
+                    web.settings.domStorageEnabled = true
                     web.settings.allowFileAccess = false
                     web.settings.allowContentAccess = false
-                    web.settings.javaScriptCanOpenWindowsAutomatically = false
+                    web.settings.javaScriptCanOpenWindowsAutomatically = true
+                    web.settings.setSupportMultipleWindows(true)
                     web.addJavascriptInterface(FocusFenceBridge(), "FocusFenceNative")
                     web.webChromeClient = object : WebChromeClient() {
                         override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
@@ -310,6 +313,38 @@ class MainActivity : Activity() {
 
                         override fun onHideCustomView() {
                             hideFullscreenVideo()
+                        }
+
+                        // Firebase signInWithPopup needs a real secondary WebView window.
+                        override fun onCreateWindow(
+                            view: WebView?,
+                            isDialog: Boolean,
+                            isUserGesture: Boolean,
+                            resultMsg: Message?
+                        ): Boolean {
+                            if (resultMsg == null) return false
+                            val popup = WebView(this@MainActivity)
+                            popup.settings.javaScriptEnabled = true
+                            popup.settings.domStorageEnabled = true
+                            popup.settings.javaScriptCanOpenWindowsAutomatically = true
+                            popup.settings.setSupportMultipleWindows(true)
+                            val popupDialog = Dialog(this@MainActivity)
+                            popup.webChromeClient = object : WebChromeClient() {
+                                override fun onCloseWindow(window: WebView?) {
+                                    popupDialog.dismiss()
+                                    popup.destroy()
+                                }
+                            }
+                            popupDialog.setContentView(popup)
+                            val transport = resultMsg.obj as WebView.WebViewTransport
+                            transport.webView = popup
+                            resultMsg.sendToTarget()
+                            popupDialog.show()
+                            popupDialog.window?.setLayout(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            return true
                         }
                     }
                     web.webViewClient = object : WebViewClient() {
