@@ -226,30 +226,38 @@ function googleLoginInfo(){
 loadData();loadChannels();setInterval(refreshStatus,2500);
 
 (function setupPullToRefresh(){
- let startY=0,pulling=false,refreshing=false;
- const indicator=document.getElementById('pullRefreshIndicator');
- function isAtTop(){return window.scrollY<=0 && document.documentElement.scrollTop<=0 && document.body.scrollTop<=0;}
- document.addEventListener('touchstart',e=>{
-  if(refreshing||e.touches.length!==1||!isAtTop())return;
-  const t=e.target;
-  if(t&&t.closest&&t.closest('input,textarea,select,button,iframe,.playlist-page'))return;
-  startY=e.touches[0].clientY;pulling=true;
- },{passive:true});
- document.addEventListener('touchmove',e=>{
-  if(!pulling||refreshing||!e.touches.length)return;
-  const delta=e.touches[0].clientY-startY;
-  if(delta>0&&isAtTop()){indicator.textContent=delta>95?'↻ Release to refresh':'↓ Pull to refresh';indicator.style.transform='translate(-50%,'+Math.min(0,delta-45)+'px)';indicator.classList.add('visible');}
-  else{indicator.classList.remove('visible');indicator.style.transform='translate(-50%,-100%)';}
- },{passive:true});
- document.addEventListener('touchend',e=>{
-  if(!pulling)return;pulling=false;
-  const endY=e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientY:startY;
-  if(endY-startY>95&&!refreshing){
-   refreshing=true;indicator.textContent='↻ Refreshing…';indicator.classList.add('visible');indicator.style.transform='translate(-50%,0)';
-   try{const n=window.FocusFenceNative;if(n&&n.refreshRemoteUi){n.refreshRemoteUi();return}}catch(err){}
-   window.location.reload();
-  }else{indicator.classList.remove('visible');indicator.style.transform='translate(-50%,-100%)'}
- },{passive:true});
+  let startY=0,pulling=false,refreshing=false,resetTimer=null;
+  const indicator=document.getElementById('pullRefreshIndicator');
+  function hideIndicator(){indicator.classList.remove('visible');indicator.style.transform='translate(-50%,-100%)';}
+  function resetRefresh(){refreshing=false;pulling=false;hideIndicator();}
+  function isAtTop(){return window.scrollY<=0 && document.documentElement.scrollTop<=0 && document.body.scrollTop<=0;}
+  document.addEventListener('touchstart',e=>{
+   if(refreshing||e.touches.length!==1||!isAtTop())return;
+   const t=e.target;
+   if(t&&t.closest&&t.closest('input,textarea,select,button,iframe,.playlist-page'))return;
+   startY=e.touches[0].clientY;pulling=true;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+   if(!pulling||refreshing||!e.touches.length)return;
+   const delta=e.touches[0].clientY-startY;
+   if(delta>0&&isAtTop()){
+    indicator.textContent=delta>95?'↻ Release to refresh':'↓ Pull to refresh';
+    indicator.style.transform='translate(-50%,'+Math.max(-100,Math.min(0,delta-45))+'px)';
+    indicator.classList.add('visible');
+   }else hideIndicator();
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+   if(!pulling)return;pulling=false;
+   const endY=e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientY:startY;
+   if(endY-startY>95&&!refreshing){
+    refreshing=true;indicator.textContent='↻ Refreshing…';indicator.classList.add('visible');indicator.style.transform='translate(-50%,0)';
+    if(resetTimer)clearTimeout(resetTimer);
+    resetTimer=setTimeout(resetRefresh,3500);
+    try{const n=window.FocusFenceNative;if(n&&n.refreshRemoteUi){n.refreshRemoteUi();return}}catch(err){}
+    try{window.location.reload();}catch(err){resetRefresh();}
+   }else hideIndicator();
+  },{passive:true});
+  window.addEventListener('pageshow',resetRefresh);
 })();
 
 </script>
