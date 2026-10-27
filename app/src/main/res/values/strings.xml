@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">ShortStop</string>
-    <string name="accessibility_description">Detects likely YouTube Shorts screens and navigates back.</string>
+    <string name="app_name">FocusFence</string>
+    <string name="accessibility_description">Blocks selected distracting apps and detects likely YouTube Shorts screens.</string>
 </resources>
