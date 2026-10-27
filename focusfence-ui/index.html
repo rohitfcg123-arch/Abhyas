@@ -74,7 +74,7 @@ body.pip-mode #playerCard>*:not(#videoFrame){display:none!important}
 body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspect-ratio:auto;margin:0;border:0;border-radius:0}
 
 /* Account and playlist pages */
-.account-btn{margin-left:auto;flex:none;padding:9px 12px;border-radius:12px;background:#2a3453;border:1px solid #46516c;font-size:11px}
+.top-user-name{margin-left:auto;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mint);font-size:12px;font-weight:800}.account-btn{margin-left:0;flex:none;padding:9px 12px;border-radius:12px;background:#2a3453;border:1px solid #46516c;font-size:11px}
 .account-row{display:flex;align-items:center;gap:8px;margin:6px 0 14px}
 .playlist-home{margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#1e2741,#141b2d)}
 .playlist-home h2{font-size:17px;margin:0 0 6px}
@@ -98,7 +98,7 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
 </style>
 </head>
 <body>
-<header class="brand"><div class="logo">✓</div><div><div class="brand-name">FOCUSFENCE</div><div class="tag">YOUR ATTENTION. YOUR RULES.</div></div><button class="account-btn" id="loginButton" onclick="googleLogin()">Continue with Google</button></header><div class="account-row"><div id="accountStatus" class="playlist-message">Sign in to sync your playlist across phones.</div></div>
+<header class="brand"><div class="logo">✓</div><div><div class="brand-name">FOCUSFENCE</div><div class="tag">YOUR ATTENTION. YOUR RULES.</div></div><div class="top-user-name" id="topUserName" hidden></div><button class="account-btn" id="loginButton" onclick="googleLogin()">Continue with Google</button></header><div class="account-row"><div id="accountStatus" class="playlist-message">Sign in to sync your playlist across phones.</div></div>
 <section class="hero"><h1>Take back your time.</h1><p>Choose the apps that distract you. We'll help you stay on track.</p><div id="status" class="status">Checking protection…</div><button class="primary" onclick="enableProtection()">Enable accessibility →</button><div class="hint">Required for app blocking to work</div></section>
 <section class="shorts-card"><div class="shorts-icon">▶</div><div class="shorts-copy"><div class="shorts-title">Block YouTube Shorts</div><div id="shortsState" class="shorts-sub">Shorts blocking is enabled</div></div><label class="switch" aria-label="Enable or disable YouTube Shorts blocking"><input id="shortsToggle" type="checkbox" checked onchange="toggleShorts(this.checked)"><span class="slider"></span></label></section>
 
@@ -239,8 +239,8 @@ window.googleLogout=async()=>{try{await signOut(auth)}catch(e){}};
 onAuthStateChanged(auth,async user=>{
  currentUser=user;
  const b=el('loginButton');
- if(user){b.textContent='Sign out';b.onclick=window.googleLogout;status('Signed in: '+(user.displayName||user.email));await loadPlaylist()}
- else{b.textContent='Continue with Google';b.onclick=window.googleLogin;savedVideos=[];renderPlaylist();status('Sign in to sync your playlist across phones.')}
+ if(user){const displayName=(user.displayName||user.email||'User').trim();b.textContent='Sign out';b.onclick=window.googleLogout;const topName=el('topUserName');if(topName){topName.textContent='Hi, '+displayName.split(/\\s+/)[0];topName.hidden=false;topName.title=displayName;}status('Signed in: '+displayName);await loadPlaylist()}
+ else{b.textContent='Continue with Google';b.onclick=window.googleLogin;const topName=el('topUserName');if(topName){topName.textContent='';topName.hidden=true;}savedVideos=[];renderPlaylist();status('Sign in to sync your playlist across phones.')}
 });
 async function loadPlaylist(){
  try{
