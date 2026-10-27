@@ -313,32 +313,22 @@ function onPlayerStateChange(event){
 window.onYouTubeIframeAPIReady=()=>{
  if(window.pendingResumeVideo){const pending=window.pendingResumeVideo;window.pendingResumeVideo=null;createYouTubePlayer(pending.video,pending.startAt)}
 };
-function createYouTubePlayer(video,startAt){
- if(!window.YT||!YT.Player){return}
+function attachProgressPlayer(startAt){
+ if(!window.YT||!YT.Player)return;
  try{
-  if(ytPlayer&&typeof ytPlayer.loadVideoById==='function'){
-   ytPlayer.loadVideoById({videoId:video.videoId,startSeconds:startAt||0});
-   return;
-  }
-  ytPlayer=new YT.Player('videoFrame',{
-   videoId:video.videoId,
-   width:'100%',
-   height:'100%',
-   host:'https://www.youtube-nocookie.com',
-   playerVars:{playsinline:1,rel:0,enablejsapi:1,origin:'https://abhyasapp6-code.github.io',start:Math.floor(startAt||0)},
+  const iframe=el('videoIframe');if(!iframe)return;
+  ytPlayer=new YT.Player('videoIframe',{
    events:{
     onReady:event=>{
      startProgressSaving();
      if(startAt>0)try{event.target.seekTo(startAt,true)}catch(e){}
-     el('playerMessage').textContent=startAt>5?'Resumed from '+Math.floor(startAt/60)+'m '+Math.floor(startAt%60)+'s.':'Video ready.';
+     el('playerMessage').textContent=startAt>5?'Resuming from '+Math.floor(startAt/60)+'m '+Math.floor(startAt%60)+'s.':'Video player ready.';
     },
     onStateChange:onPlayerStateChange,
-    onError:event=>{el('playerMessage').textContent='YouTube player error ('+event.data+'). This video may block playback in the embedded player.';}
+    onError:event=>{el('playerMessage').textContent='YouTube player error ('+event.data+'). This video may not allow embedded playback.';}
    }
   });
- }catch(e){
-  el('playerMessage').textContent='Could not start the YouTube player. Please try again.';
- }
+ }catch(e){el('playerMessage').textContent='Video is loaded; playback tracking could not start.'}
 }
 function savePositionNow(){
  try{if(ytPlayer&&currentVideo&&ytPlayer.getCurrentTime)rememberPosition(ytPlayer.getCurrentTime())}catch(e){}
@@ -393,24 +383,22 @@ window.playSavedVideo=(id)=>{
  el('nowPlayingTitle').textContent=v.title;
  const startAt=savedPosition(v);
  el('playerMessage').textContent=startAt>5?'Resuming from '+Math.floor(startAt/60)+'m '+Math.floor(startAt%60)+'s…':'Starting video…';
- if(window.YT&&YT.Player){createYouTubePlayer(v,startAt)}
+ // Load a normal iframe immediately so playback does not depend on the API script.
+ frame.innerHTML='<iframe id="videoIframe" title="YouTube video player" src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(v.videoId)+'?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fabhyasapp6-code.github.io&start='+Math.floor(startAt)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+ if(window.YT&&YT.Player){attachProgressPlayer(startAt)}
  else{
-  window.pendingResumeVideo={video:v,startAt};
-  el('playerMessage').textContent='Loading YouTube player…';
-  if(!window._ytApiWaitTimer){
-   let tries=0;
-   window._ytApiWaitTimer=setInterval(()=>{
-    tries++;
-    if(window.YT&&YT.Player&&window.pendingResumeVideo){
-     clearInterval(window._ytApiWaitTimer);window._ytApiWaitTimer=null;
-     const pending=window.pendingResumeVideo;window.pendingResumeVideo=null;
-     createYouTubePlayer(pending.video,pending.startAt);
-    }else if(tries>=20){
-     clearInterval(window._ytApiWaitTimer);window._ytApiWaitTimer=null;
-     el('playerMessage').textContent='YouTube player could not load. Check internet and try again.';
-    }
-   },500);
-  }
+  let tries=0;
+  if(window._ytApiWaitTimer)clearInterval(window._ytApiWaitTimer);
+  window._ytApiWaitTimer=setInterval(()=>{
+   tries++;
+   if(window.YT&&YT.Player){
+    clearInterval(window._ytApiWaitTimer);window._ytApiWaitTimer=null;
+    attachProgressPlayer(startAt);
+   }else if(tries>=20){
+    clearInterval(window._ytApiWaitTimer);window._ytApiWaitTimer=null;
+    el('playerMessage').textContent='Video loaded. Resume tracking unavailable because YouTube API did not load.';
+   }
+  },500);
  }
  try{const n=window.FocusFenceNative;if(n&&n.setPlayerActive)n.setPlayerActive(true)}catch(e){}
  window.closePlaylistPage();el('playerCard').scrollIntoView({behavior:'smooth',block:'start'});
