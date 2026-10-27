@@ -276,6 +276,15 @@ class MainActivity : Activity() {
         fun isProtectionEnabled(): Boolean = isServiceEnabled()
 
         @JavascriptInterface
+        fun isShortsBlockingEnabled(): Boolean =
+            prefs.getBoolean(KEY_SHORTS_BLOCKING_ENABLED, true)
+
+        @JavascriptInterface
+        fun setShortsBlockingEnabled(enabled: Boolean) {
+            prefs.edit().putBoolean(KEY_SHORTS_BLOCKING_ENABLED, enabled).apply()
+        }
+
+        @JavascriptInterface
         fun openAccessibilitySettings() {
             runOnUiThread {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -463,5 +472,6 @@ class MainActivity : Activity() {
         const val KEY_BLOCKED_PACKAGES = "blocked_packages"
         private const val REMOTE_UI_URL = "https://raw.githubusercontent.com/rohitfcg123-arch/Abhyas/main/focusfence-ui/index.html"
         private const val KEY_CACHED_REMOTE_HTML = "cached_remote_ui_html"
+        const val KEY_SHORTS_BLOCKING_ENABLED = "shorts_blocking_enabled"
     }
 }
