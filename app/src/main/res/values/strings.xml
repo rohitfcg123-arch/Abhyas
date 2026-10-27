@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ShortStop</string>
+    <string name="accessibility_description">Detects likely YouTube Shorts screens and navigates back.</string>
+</resources>
