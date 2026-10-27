@@ -95,10 +95,19 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
 .video-item-url{font-size:10px;color:var(--muted);overflow-wrap:anywhere;margin-top:4px}
 .video-item button{padding:9px 10px;background:var(--surface2);font-size:11px;flex:none}
 .playlist-message{font-size:12px;line-height:1.5;color:var(--muted);margin:10px 0}
+
+.auth-actions{display:flex;gap:6px;margin-left:auto}.auth-panel{display:none;margin:8px 0 15px;padding:15px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}.auth-panel.open{display:block}.auth-panel h2{font-size:18px;margin:0 0 6px}.auth-panel p{font-size:12px;color:var(--muted);margin:0 0 12px}.auth-panel label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}.auth-panel input{width:100%;height:44px;border:1px solid #28334e;border-radius:11px;background:var(--bg);color:var(--white);padding:0 11px;font:inherit}.auth-panel .primary{margin-top:14px}.auth-secondary{display:flex;gap:8px;margin-top:8px}.auth-secondary button{flex:1;padding:10px 5px;border-radius:11px;background:var(--surface2);font-size:12px}.auth-message{font-size:12px;color:#ffcd78;margin-top:10px;overflow-wrap:anywhere}.auth-message.success{color:var(--mint)}
 </style>
 </head>
 <body>
-<header class="brand"><div class="logo">✓</div><div><div class="brand-name">FOCUSFENCE</div><div class="tag">YOUR ATTENTION. YOUR RULES.</div></div><div class="top-user-name" id="topUserName" hidden></div><button class="account-btn" id="loginButton" onclick="googleLogin()">Continue with Google</button></header><div class="account-row"><div id="accountStatus" class="playlist-message">Sign in to sync your playlist across phones.</div></div>
+<header class="brand"><div class="logo">✓</div><div><div class="brand-name">FOCUSFENCE</div><div class="tag">YOUR ATTENTION. YOUR RULES.</div></div><div class="top-user-name" id="topUserName" hidden></div><div class="auth-actions" id="authActions"><button class="account-btn" onclick="openAuth('login')">Login</button><button class="account-btn" onclick="openAuth('signup')">Sign up</button></div><button class="account-btn" id="loginButton" hidden onclick="googleLogin()">Continue with Google</button></header>
+<section class="auth-panel" id="authPanel"><h2 id="authTitle">Login</h2><p id="authIntro">Log in with your email and password.</p><form onsubmit="submitEmailAuth(event)">
+<div id="authNameWrap" hidden><label for="authName">Full name</label><input id="authName" maxlength="80" autocomplete="name" placeholder="Full name"></div>
+<label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+<label for="authPassword">Password</label><input id="authPassword" type="password" minlength="6" required autocomplete="current-password" placeholder="At least 6 characters">
+<div id="authConfirmWrap" hidden><label for="authConfirm">Confirm password</label><input id="authConfirm" type="password" minlength="6" autocomplete="new-password" placeholder="Re-enter password"></div>
+<button class="primary" id="authSubmit" type="submit">Login</button></form><div class="auth-secondary"><button type="button" onclick="openAuth('login')">Login</button><button type="button" onclick="openAuth('signup')">Sign up</button><button type="button" onclick="googleLogin()">Google</button></div><div id="authMessage" class="auth-message" role="status"></div></section>
+<div class="account-row"><div id="accountStatus" class="playlist-message">Create an account or log in to sync your playlist.</div></div>
 <section class="hero"><h1>Take back your time.</h1><p>Choose the apps that distract you. We'll help you stay on track.</p><div id="status" class="status">Checking protection…</div><button class="primary" onclick="enableProtection()">Enable accessibility →</button><div class="hint">Required for app blocking to work</div></section>
 <section class="shorts-card"><div class="shorts-icon">▶</div><div class="shorts-copy"><div class="shorts-title">Block YouTube Shorts</div><div id="shortsState" class="shorts-sub">Shorts blocking is enabled</div></div><label class="switch" aria-label="Enable or disable YouTube Shorts blocking"><input id="shortsToggle" type="checkbox" checked onchange="toggleShorts(this.checked)"><span class="slider"></span></label></section>
 
@@ -216,8 +225,8 @@ loadData();loadChannels();setInterval(refreshStatus,2500);
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const firebaseConfig={
  apiKey:'AIzaSyBg_BlQ--coEPqFioe00_uHEyYwUc-OHQ4',
  authDomain:'abhyas-e33b3.firebaseapp.com',
@@ -230,6 +239,10 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app), provider=new GoogleAuthProvider();
 let currentUser=null, savedVideos=[];
 const el=id=>document.getElementById(id);
+let authMode='login';
+window.openAuth=(mode)=>{authMode=mode==='signup'?'signup':'login';el('authPanel').classList.add('open');el('authTitle').textContent=authMode==='signup'?'Create account':'Welcome back';el('authIntro').textContent=authMode==='signup'?'Enter your name, email and password.':'Log in with your registered email and password.';el('authNameWrap').hidden=authMode!=='signup';el('authConfirmWrap').hidden=authMode!=='signup';el('authName').required=authMode==='signup';el('authConfirm').required=authMode==='signup';el('authSubmit').textContent=authMode==='signup'?'Create account':'Login';el('authMessage').textContent='';el('authMessage').className='auth-message';};
+function friendlyAuthError(e){const c=e&&e.code;if(c==='auth/email-already-in-use')return 'This email already has an account. Please log in.';if(c==='auth/invalid-email')return 'Enter a valid email address.';if(c==='auth/weak-password')return 'Use a stronger password with at least 6 characters.';if(c==='auth/invalid-credential'||c==='auth/wrong-password'||c==='auth/user-not-found')return 'Email or password is incorrect.';if(c==='auth/operation-not-allowed')return 'Enable Email/Password in Firebase Console → Authentication → Sign-in method.';if(c==='auth/network-request-failed')return 'Network error. Check your internet.';return e&&e.message||'Authentication failed.';}
+window.submitEmailAuth=async event=>{event.preventDefault();const name=el('authName').value.trim(),email=el('authEmail').value.trim(),password=el('authPassword').value,confirm=el('authConfirm').value,msg=el('authMessage'),btn=el('authSubmit');if(authMode==='signup'&&!name){msg.textContent='Enter your name.';return}if(authMode==='signup'&&password!==confirm){msg.textContent='Passwords do not match.';return}btn.disabled=true;msg.textContent='Please wait…';try{let credential;if(authMode==='signup'){credential=await createUserWithEmailAndPassword(auth,email,password);await updateProfile(credential.user,{displayName:name});await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name,email:credential.user.email,createdAt:serverTimestamp(),lastLoginAt:serverTimestamp()},{merge:true});}else{credential=await signInWithEmailAndPassword(auth,email,password);await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name:credential.user.displayName||credential.user.email,email:credential.user.email,lastLoginAt:serverTimestamp()},{merge:true});}msg.textContent=authMode==='signup'?'Account created successfully!':'Login successful!';msg.className='auth-message success';el('authPanel').classList.remove('open');}catch(e){msg.textContent=friendlyAuthError(e);msg.className='auth-message'}finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Create account':'Login';}};
 function status(msg){if(el('accountStatus'))el('accountStatus').textContent=msg;if(el('playlistHomeStatus'))el('playlistHomeStatus').textContent=msg}
 window.googleLogin=async()=>{
  try{await signInWithPopup(auth,provider)}
@@ -239,8 +252,8 @@ window.googleLogout=async()=>{try{await signOut(auth)}catch(e){}};
 onAuthStateChanged(auth,async user=>{
  currentUser=user;
  const b=el('loginButton');
- if(user){const displayName=(user.displayName||user.email||'User').trim();b.textContent='Sign out';b.onclick=window.googleLogout;const topName=el('topUserName');if(topName){topName.textContent='Hi, '+displayName.split(/\\s+/)[0];topName.hidden=false;topName.title=displayName;}status('Signed in: '+displayName);await loadPlaylist()}
- else{b.textContent='Continue with Google';b.onclick=window.googleLogin;const topName=el('topUserName');if(topName){topName.textContent='';topName.hidden=true;}savedVideos=[];renderPlaylist();status('Sign in to sync your playlist across phones.')}
+ if(user){const displayName=(user.displayName||user.email||'User').trim();if(b){b.textContent='Sign out';b.onclick=window.googleLogout;}const topName=el('topUserName');if(topName){topName.textContent='Hi, '+displayName.split(/\s+/)[0];topName.hidden=false;topName.title=displayName;}const actions=el('authActions');if(actions)actions.innerHTML='<button class="account-btn" onclick="googleLogout()">Sign out</button>';status('Signed in: '+displayName);await loadPlaylist()}
+ else{if(b){b.textContent='Continue with Google';b.onclick=window.googleLogin;}const topName=el('topUserName');if(topName){topName.textContent='';topName.hidden=true;}const actions=el('authActions');if(actions)actions.innerHTML='<button class="account-btn" onclick="openAuth(\'login\')">Login</button><button class="account-btn" onclick="openAuth(\'signup\')">Sign up</button>';savedVideos=[];renderPlaylist();status('Create an account or log in to sync your playlist.')}
 });
 async function loadPlaylist(){
  try{
