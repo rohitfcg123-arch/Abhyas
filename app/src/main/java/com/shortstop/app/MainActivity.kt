@@ -1,28 +1,50 @@
 package com.shortstop.app
 
-import android.accessibilityservice.AccessibilityService
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import android.text.TextUtils
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 
 class MainActivity : Activity() {
     private lateinit var status: TextView
+    private lateinit var count: TextView
     private lateinit var appList: LinearLayout
+    private lateinit var search: EditText
     private val prefs by lazy { getSharedPreferences(PREFS_NAME, MODE_PRIVATE) }
     private val blockedPackages = mutableSetOf<String>()
+    private var allApps: List<AppEntry> = emptyList()
+
+    private data class AppEntry(val packageName: String, val label: String)
+
+    private val bg = Color.rgb(11, 16, 32)
+    private val surface = Color.rgb(22, 29, 50)
+    private val surface2 = Color.rgb(30, 39, 65)
+    private val white = Color.rgb(245, 247, 255)
+    private val muted = Color.rgb(160, 171, 198)
+    private val accent = Color.rgb(139, 111, 255)
+    private val mint = Color.rgb(86, 231, 190)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = bg
+        window.navigationBarColor = bg
+        window.decorView.systemUiVisibility = 0
         loadBlockedPackages()
         render()
     }
@@ -33,134 +55,223 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
-        val pad = (20 * resources.displayMetrics.density).toInt()
-        val layout = LinearLayout(this).apply {
+        val pad = dp(20)
+        val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad, pad, pad)
+            setBackgroundColor(bg)
         }
-        val title = TextView(this).apply {
-            text = "ShortStop"
-            textSize = 30f
-            gravity = Gravity.CENTER
-            setTextColor(0xFF182230.toInt())
-        }
-        val subtitle = TextView(this).apply {
-            text = "Block Shorts and distracting apps"
-            textSize = 16f
-            gravity = Gravity.CENTER
-            setPadding(0, pad / 3, 0, pad / 2)
-        }
-        status = TextView(this).apply {
-            textSize = 15f
-            gravity = Gravity.CENTER
-            setPadding(0, pad / 2, 0, pad / 2)
-        }
-        val enable = Button(this).apply {
-            text = "Enable blocking permission"
-            setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-        }
-        val heading = TextView(this).apply {
-            text = "Choose apps to block"
-            textSize = 20f
-            setTextColor(0xFF182230.toInt())
-            setPadding(0, pad, 0, pad / 3)
-        }
-        val help = TextView(this).apply {
-            text = "Selected apps will be sent back to the home screen when opened. Your choices are saved on this phone."
-            textSize = 14f
-            setPadding(0, 0, 0, pad / 2)
-        }
-        appList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val scroll = ScrollView(this).apply {
-            addView(appList, ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-            ))
+            isFillViewport = true
+            clipToPadding = false
+            setPadding(0, 0, 0, dp(10))
         }
-        val refresh = Button(this).apply {
-            text = "Refresh app list"
-            setOnClickListener { populateApps() }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, dp(18), pad, dp(20))
         }
 
-        layout.addView(title, fullWidth())
-        layout.addView(subtitle, fullWidth())
-        layout.addView(status, fullWidth())
-        layout.addView(enable, fullWidth())
-        layout.addView(heading, fullWidth())
-        layout.addView(help, fullWidth())
-        layout.addView(scroll, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
-        ))
-        layout.addView(refresh, fullWidth())
-        setContentView(layout)
-        populateApps()
+        val brandRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val logo = ImageView(this).apply {
+            setImageResource(R.drawable.ic_focusfence)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        brandRow.addView(logo, LinearLayout.LayoutParams(dp(52), dp(52)))
+        val brandText = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), 0, 0, 0)
+        }
+        brandText.addView(label("FOCUSFENCE", 19f, white, true))
+        brandText.addView(label("YOUR ATTENTION. YOUR RULES.", 10f, muted, true).apply {
+            letterSpacing = 0.08f
+            setPadding(0, dp(3), 0, 0)
+        })
+        brandRow.addView(brandText, LinearLayout.LayoutParams(0, -2, 1f))
+        brandRow.addView(pill("BETA", accent, white))
+        content.addView(brandRow)
+
+        val hero = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = roundedGradient(
+                intArrayOf(Color.rgb(43, 43, 91), Color.rgb(27, 46, 78)), 26
+            )
+            setPadding(dp(20), dp(22), dp(20), dp(20))
+        }
+        hero.addView(label("Take back your time.", 27f, white, true))
+        hero.addView(label("Choose the apps that distract you.\nWe'll help you stay on track.", 14f, Color.rgb(205, 211, 238), false).apply {
+            setPadding(0, dp(8), 0, dp(18))
+            setLineSpacing(dp(3).toFloat(), 1f)
+        })
+        status = label("", 14f, white, true)
+        status.setPadding(dp(12), dp(11), dp(12), dp(11))
+        status.background = rounded(Color.rgb(36, 54, 78), 14)
+        hero.addView(status, LinearLayout.LayoutParams(-1, -2))
+        val enable = actionButton("Enable accessibility  →", accent)
+        enable.setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        val enableParams = LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(12) }
+        hero.addView(enable, enableParams)
+        val warning = label("Required for blocking to work", 12f, Color.rgb(200, 206, 230), false)
+        warning.gravity = Gravity.CENTER
+        warning.setPadding(0, dp(8), 0, 0)
+        hero.addView(warning)
+        val heroParams = LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = dp(22)
+        }
+        content.addView(hero, heroParams)
+
+        val sectionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(25), 0, dp(12))
+        }
+        val sectionTitle = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        sectionTitle.addView(label("Block distracting apps", 20f, white, true))
+        sectionTitle.addView(label("Select any app from your phone", 12f, muted, false).apply {
+            setPadding(0, dp(4), 0, 0)
+        })
+        sectionRow.addView(sectionTitle, LinearLayout.LayoutParams(0, -2, 1f))
+        count = pill("0 SELECTED", mint, bg)
+        sectionRow.addView(count)
+        content.addView(sectionRow)
+
+        search = EditText(this).apply {
+            hint = "  Search installed apps"
+            setHintTextColor(muted)
+            setTextColor(white)
+            textSize = 15f
+            singleLine = true
+            compoundDrawablePadding = dp(8)
+            setPadding(dp(15), 0, dp(12), 0)
+            background = rounded(surface, 16)
+        }
+        content.addView(search, LinearLayout.LayoutParams(-1, dp(52)).apply {
+            bottomMargin = dp(12)
+        })
+
+        val listCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = rounded(surface, 18)
+            setPadding(dp(12), dp(5), dp(12), dp(5))
+        }
+        appList = listCard
+        content.addView(listCard, LinearLayout.LayoutParams(-1, -2))
+
+        val footer = label("Your selection stays on this device. FocusFence sends selected apps back to Home when opened.", 12f, muted, false)
+        footer.gravity = Gravity.CENTER
+        footer.setPadding(dp(8), dp(17), dp(8), dp(8))
+        content.addView(footer)
+
+        scroll.addView(content, ScrollView.LayoutParams(-1, -2))
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        setContentView(root)
+
+        search.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = renderAppRows()
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+        loadApps()
+        renderAppRows()
         updateStatus()
     }
 
-    private fun populateApps() {
+    private fun loadApps() {
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        allApps = packageManager.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
+            .mapNotNull { info ->
+                val pkg = info.activityInfo?.packageName ?: return@mapNotNull null
+                if (pkg == packageName()) return@mapNotNull null
+                val appLabel = info.loadLabel(packageManager)?.toString()?.trim().orEmpty()
+                if (appLabel.isBlank()) null else AppEntry(pkg, appLabel)
+            }
+            .distinctBy { it.packageName }
+            .sortedBy { it.label.lowercase() }
+    }
+
+    private fun renderAppRows() {
         if (!::appList.isInitialized) return
         appList.removeAllViews()
-        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val apps = packageManager.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
-            .mapNotNull { info ->
-                val packageName = info.activityInfo?.packageName ?: return@mapNotNull null
-                if (packageName == packageName()) return@mapNotNull null
-                val label = info.loadLabel(packageManager)?.toString()?.trim().orEmpty()
-                if (label.isBlank()) null else packageName to label
-            }
-            .distinctBy { it.first }
-            .sortedBy { it.second.lowercase() }
-
-        if (apps.isEmpty()) {
-            appList.addView(TextView(this).apply { text = "No launchable apps found." })
+        val query = if (::search.isInitialized) search.text.toString().trim().lowercase() else ""
+        val visibleApps = allApps.filter { it.label.lowercase().contains(query) }
+        if (visibleApps.isEmpty()) {
+            appList.addView(label("No apps match your search.", 14f, muted, false).apply {
+                gravity = Gravity.CENTER
+                setPadding(dp(16), dp(25), dp(16), dp(25))
+            })
+            updateCount()
             return
         }
-        apps.forEach { (pkg, label) ->
+        visibleApps.forEachIndexed { index, app ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(3), dp(10), dp(3), dp(10))
+                isClickable = true
+                isFocusable = true
+            }
+            val icon = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                try {
+                    setImageDrawable(packageManager.getApplicationIcon(app.packageName))
+                } catch (_: PackageManager.NameNotFoundException) {
+                    setImageResource(R.drawable.ic_focusfence)
+                }
+            }
+            row.addView(icon, LinearLayout.LayoutParams(dp(42), dp(42)))
+            val names = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(12), 0, dp(6), 0)
+            }
+            names.addView(label(app.label, 15f, white, true))
+            names.addView(label(if (blockedPackages.contains(app.packageName)) "Blocked" else "Allowed", 11f,
+                if (blockedPackages.contains(app.packageName)) mint else muted, false).apply {
+                setPadding(0, dp(3), 0, 0)
+            })
+            row.addView(names, LinearLayout.LayoutParams(0, -2, 1f))
             val check = CheckBox(this).apply {
-                text = label
-                textSize = 16f
-                isChecked = blockedPackages.contains(pkg)
-                setPadding(0, 5, 0, 5)
+                buttonTintList = android.content.res.ColorStateList(
+                    arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+                    intArrayOf(mint, muted)
+                )
+                isChecked = blockedPackages.contains(app.packageName)
+                contentDescription = "Block ${app.label}"
                 setOnCheckedChangeListener { _, checked ->
-                    if (checked) blockedPackages.add(pkg) else blockedPackages.remove(pkg)
+                    if (checked) blockedPackages.add(app.packageName) else blockedPackages.remove(app.packageName)
                     persistBlockedPackages()
+                    renderAppRows()
                     updateStatus()
                 }
             }
-            appList.addView(check, fullWidth())
+            row.addView(check)
+            row.setOnClickListener { check.isChecked = !check.isChecked }
+            appList.addView(row, LinearLayout.LayoutParams(-1, -2))
+            if (index < visibleApps.lastIndex) {
+                val divider = View(this).apply { setBackgroundColor(Color.rgb(43, 51, 73)) }
+                appList.addView(divider, LinearLayout.LayoutParams(-1, dp(1)))
+            }
         }
+        updateCount()
     }
 
-    private fun packageName(): String = applicationContext.packageName
-
-    private fun loadBlockedPackages() {
-        blockedPackages.clear()
-        blockedPackages.addAll(
-            prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet())?.toSet() ?: emptySet()
-        )
-        blockedPackages.remove(packageName())
+    private fun updateCount() {
+        if (!::count.isInitialized) return
+        count.text = "${blockedPackages.size} SELECTED"
     }
-
-    private fun persistBlockedPackages() {
-        prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, blockedPackages.toSet()).apply()
-    }
-
-    private fun fullWidth() = LinearLayout.LayoutParams(
-        LinearLayout.LayoutParams.MATCH_PARENT,
-        LinearLayout.LayoutParams.WRAP_CONTENT
-    )
 
     private fun updateStatus() {
         if (!::status.isInitialized) return
         val enabled = isServiceEnabled()
-        status.text = "Blocker: " + if (enabled) "ENABLED" else "NOT ENABLED — enable it below"
-        status.append("\nApps selected: ${blockedPackages.size}")
+        status.text = if (enabled) "●  PROTECTION IS ON" else "○  PROTECTION IS OFF"
+        status.setTextColor(if (enabled) mint else Color.rgb(255, 205, 120))
+        status.background = rounded(if (enabled) Color.rgb(27, 66, 67) else Color.rgb(75, 55, 45), 14)
+        updateCount()
     }
 
     private fun isServiceEnabled(): Boolean {
         val expected = packageName() + "/" + ShortsBlockerService::class.java.name
-        val enabled = Settings.Secure.getString(
-            contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
+        val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
         val splitter = TextUtils.SimpleStringSplitter(':')
         splitter.setString(enabled)
         while (splitter.hasNext()) {
@@ -168,6 +279,60 @@ class MainActivity : Activity() {
         }
         return false
     }
+
+    private fun loadBlockedPackages() {
+        blockedPackages.clear()
+        blockedPackages.addAll(prefs.getStringSet(KEY_BLOCKED_PACKAGES, emptySet())?.toSet() ?: emptySet())
+        blockedPackages.remove(packageName())
+    }
+
+    private fun persistBlockedPackages() {
+        prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, blockedPackages.toSet()).apply()
+    }
+
+    private fun label(value: String, size: Float, color: Int, bold: Boolean): TextView =
+        TextView(this).apply {
+            text = value
+            textSize = size
+            setTextColor(color)
+            if (bold) setTypeface(typeface, Typeface.BOLD)
+        }
+
+    private fun pill(value: String, color: Int, textColor: Int): TextView =
+        TextView(this).apply {
+            text = value
+            textSize = 10f
+            setTextColor(textColor)
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(11), dp(8), dp(11), dp(8))
+            background = rounded(color, 40)
+        }
+
+    private fun actionButton(value: String, color: Int): TextView =
+        TextView(this).apply {
+            text = value
+            textSize = 15f
+            setTextColor(Color.WHITE)
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            background = rounded(color, 15)
+            isClickable = true
+            isFocusable = true
+        }
+
+    private fun rounded(color: Int, radiusDp: Int): GradientDrawable =
+        GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = dp(radiusDp).toFloat()
+        }
+
+    private fun roundedGradient(colors: IntArray, radiusDp: Int): GradientDrawable =
+        GradientDrawable(GradientDrawable.Orientation.TL_BR, colors).apply {
+            cornerRadius = dp(radiusDp).toFloat()
+        }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {
         const val PREFS_NAME = "shortstop_settings"
