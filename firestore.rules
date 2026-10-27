@@ -1,6 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /users/{userId} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function validProfile(data) {
+        return data.keys().hasAll(['uid', 'name', 'email'])
+          && data.uid == userId
+          && data.name is string
+          && data.name.size() > 0
+          && data.name.size() <= 80
+          && data.email is string
+          && data.email.size() <= 254;
+      }
+      allow read: if isOwner();
+      allow create, update: if isOwner() && validProfile(request.resource.data);
+      allow delete: if false;
+    }
     match /users/{userId}/playlistVideos/{videoId} {
       function isOwner() {
         return request.auth != null && request.auth.uid == userId;
