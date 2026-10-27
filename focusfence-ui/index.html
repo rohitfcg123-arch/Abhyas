@@ -219,13 +219,13 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const firebaseConfig={
- apiKey:'AIzaSyAfg3w7LuDL8JyO8Y3fy1kYdXhnN-kq84U',
- authDomain:'abhyas-8b30b.firebaseapp.com',
- projectId:'abhyas-8b30b',
- storageBucket:'abhyas-8b30b.firebasestorage.app',
- messagingSenderId:'195021507273',
- appId:'1:195021507273:web:ac43a3244cb862d4f99b18',
- measurementId:'G-6J9XNNBE22'
+ apiKey:'AIzaSyBg_BlQ--coEPqFioe00_uHEeYwUc-OHQ4',
+ authDomain:'abhyas-e33b3.firebaseapp.com',
+ projectId:'abhyas-e33b3',
+ storageBucket:'abhyas-e33b3.firebasestorage.app',
+ messagingSenderId:'294695344786',
+ appId:'1:294695344786:web:17ba12f91ec80a0e25644b',
+ measurementId:'G-PFRF9NFY6K'
 };
 const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app), provider=new GoogleAuthProvider();
 let currentUser=null, savedVideos=[];
