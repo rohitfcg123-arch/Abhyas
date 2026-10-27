@@ -59,6 +59,14 @@ body{width:100%;max-width:100vw;overflow-x:hidden;padding: max(10px,env(safe-are
 .channel-chip button{background:transparent;color:#ff9ba8;padding:0;font-size:17px;line-height:1}
 .channel-note{font-size:10px;line-height:1.45;color:var(--muted);margin-top:10px}
 
+
+.player-card{margin-top:14px;padding:15px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.player-input{display:flex;gap:8px;margin-top:12px}
+.player-input input{min-width:0;flex:1;height:44px;border:1px solid #28334e;border-radius:12px;background:var(--bg);color:var(--white);padding:0 11px;font:inherit;font-size:13px}
+.player-input button{padding:0 14px;border-radius:12px;background:var(--purple);font-size:12px}
+.player-frame{display:none;width:100%;aspect-ratio:16/9;margin-top:12px;border:0;border-radius:13px;background:#000}
+.player-message{font-size:11px;line-height:1.5;color:var(--muted);margin-top:9px}
+.player-login{width:100%;min-height:43px;margin-top:10px;border:1px solid #46516c;border-radius:12px;background:var(--surface2);font-size:12px}
 </style>
 </head>
 <body>
@@ -75,6 +83,19 @@ body{width:100%;max-width:100vw;overflow-x:hidden;padding: max(10px,env(safe-are
  </form>
  <div id="channelList" class="channel-list"></div>
  <div class="channel-note">Best-effort blocking: YouTube may not expose channel names on every screen. Test with a few channels first.</div>
+</section>
+
+<section class="player-card">
+ <div class="channel-title">Watch YouTube inside FocusFence</div>
+ <div class="channel-sub">Paste a public YouTube video link. It will try to play here without opening the YouTube app.</div>
+ <form class="player-input" onsubmit="playVideo(event)">
+  <input id="videoUrl" type="url" inputmode="url" placeholder="https://youtube.com/watch?v=..." autocomplete="url" required>
+  <button type="submit">Play</button>
+ </form>
+ <iframe id="videoFrame" class="player-frame" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+ <div id="playerMessage" class="player-message">Some videos may refuse embedding because of creator, age, region, or account restrictions.</div>
+ <button class="player-login" type="button" onclick="googleLoginInfo()">Continue with Google · setup needed</button>
+ <div class="player-message">Google account linking needs an OAuth Client ID configured for this app. This button explains the setup requirement; it does not sign you in yet.</div>
 </section>
 
 <section class="section"><div><h2>Block distracting apps</h2><p>Select any app from your phone</p></div><div id="count" class="count">0 SELECTED</div></section>
@@ -115,6 +136,38 @@ function addChannel(event){
 function removeChannel(index){
  const name=blockedChannels[index],n=native();if(!name||!n)return;
  try{n.removeBlockedChannel(name);blockedChannels.splice(index,1);renderChannels()}catch(e){}
+}
+
+function extractVideoId(raw){
+ try{
+  const u=new URL(raw.trim());
+  const host=u.hostname.toLowerCase().replace(/^www\\./,'');
+  if(host==='youtu.be')return u.pathname.split('/').filter(Boolean)[0]||'';
+  if(host==='youtube.com'||host==='m.youtube.com'||host==='youtube-nocookie.com'){
+   if(u.pathname==='/watch')return u.searchParams.get('v')||'';
+   const parts=u.pathname.split('/').filter(Boolean);
+   if(['shorts','embed','live'].includes(parts[0]))return parts[1]||'';
+  }
+ }catch(e){}
+ return '';
+}
+function playVideo(event){
+ event.preventDefault();
+ const raw=document.getElementById('videoUrl').value.trim();
+ const id=extractVideoId(raw);
+ const message=document.getElementById('playerMessage');
+ const frame=document.getElementById('videoFrame');
+ if(!/^[A-Za-z0-9_-]{11}$/.test(id)){
+  frame.style.display='none';frame.removeAttribute('src');
+  message.textContent='Please paste a valid YouTube video link.';
+  return;
+ }
+ frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+'?playsinline=1&rel=0';
+ frame.style.display='block';
+ message.textContent='Loading video… If playback is blocked, that video may not allow embedding.';
+}
+function googleLoginInfo(){
+ alert('Google sign-in is not connected yet. To enable secure Google/YouTube account linking, the app needs a Google OAuth Client ID and authorized redirect setup.');
 }
 
 loadData();loadChannels();setInterval(refreshStatus,2500);
