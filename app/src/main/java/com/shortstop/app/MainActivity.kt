@@ -3,6 +3,7 @@ package com.shortstop.app
 import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
@@ -40,6 +41,7 @@ class MainActivity : Activity() {
     private var fullscreenCustomView: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
     private var previousSystemUiVisibility = 0
+    private var previousRequestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     private lateinit var status: TextView
     private lateinit var count: TextView
     private lateinit var appList: LinearLayout
@@ -106,6 +108,8 @@ class MainActivity : Activity() {
         fullscreenCustomView = view
         fullscreenCallback = callback
         previousSystemUiVisibility = window.decorView.systemUiVisibility
+        previousRequestedOrientation = requestedOrientation
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         val decor = window.decorView as? FrameLayout
         decor?.addView(view, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -128,6 +132,7 @@ class MainActivity : Activity() {
         fullscreenCallback?.onCustomViewHidden()
         fullscreenCallback = null
         window.decorView.systemUiVisibility = previousSystemUiVisibility
+        requestedOrientation = previousRequestedOrientation
     }
 
     private fun render() {
