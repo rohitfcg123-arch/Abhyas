@@ -232,7 +232,9 @@ class MainActivity : Activity() {
                     web.addJavascriptInterface(FocusFenceBridge(), "FocusFenceNative")
                     web.webViewClient = object : WebViewClient() {
                         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                            return true
+                            // Allow embedded player frames and their media resources, but keep
+                            // top-level navigation inside FocusFence.
+                            return request?.isForMainFrame != false
                         }
                     }
                     setContentView(web)
