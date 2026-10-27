@@ -64,7 +64,7 @@ body{width:100%;max-width:100vw;overflow-x:hidden;padding: max(10px,env(safe-are
 .player-input{display:flex;gap:8px;margin-top:12px}
 .player-input input{min-width:0;flex:1;height:44px;border:1px solid #28334e;border-radius:12px;background:var(--bg);color:var(--white);padding:0 11px;font:inherit;font-size:13px}
 .player-input button{padding:0 14px;border-radius:12px;background:var(--purple);font-size:12px}
-.player-frame{display:none;width:100%;aspect-ratio:16/9;margin-top:12px;border:0;border-radius:13px;background:#000}
+.player-frame{display:none;width:100%;aspect-ratio:16/9;margin-top:12px;border:0;border-radius:13px;background:#000;overflow:hidden}.player-frame iframe{display:block;width:100%;height:100%;border:0;border-radius:13px}
 .player-message{font-size:11px;line-height:1.5;color:var(--muted);margin-top:9px}
 .player-login{width:100%;min-height:43px;margin-top:10px;border:1px solid #46516c;border-radius:12px;background:var(--surface2);font-size:12px}
 body.pip-mode{padding:0!important;overflow:hidden!important;background:#000!important}
@@ -133,7 +133,7 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
 <section id="playerCard" class="player-card">
  <div class="channel-title">Now playing</div>
  <div id="nowPlayingTitle" class="channel-sub">Choose a saved video from My Playlist.</div>
- <iframe id="videoFrame" class="player-frame" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+ <div id="videoFrame" class="player-frame" aria-label="YouTube video player"></div>
  <div id="playerMessage" class="player-message">Some videos may refuse embedding because of creator, age, region, or account restrictions.</div>
 </section>
 <div id="playlistPage" class="playlist-page">
@@ -320,20 +320,24 @@ function createYouTubePlayer(video,startAt){
    ytPlayer.loadVideoById({videoId:video.videoId,startSeconds:startAt||0});
    return;
   }
-  const host=el('videoFrame');
   ytPlayer=new YT.Player('videoFrame',{
    videoId:video.videoId,
    width:'100%',
    height:'100%',
-   playerVars:{playsinline:1,rel:0,enablejsapi:1,start:Math.floor(startAt||0)},
+   host:'https://www.youtube-nocookie.com',
+   playerVars:{playsinline:1,rel:0,enablejsapi:1,origin:'https://abhyasapp6-code.github.io',start:Math.floor(startAt||0)},
    events:{
-    onReady:event=>{startProgressSaving();if(startAt>0)try{event.target.seekTo(startAt,true)}catch(e){}},
-    onStateChange:onPlayerStateChange
+    onReady:event=>{
+     startProgressSaving();
+     if(startAt>0)try{event.target.seekTo(startAt,true)}catch(e){}
+     el('playerMessage').textContent=startAt>5?'Resumed from '+Math.floor(startAt/60)+'m '+Math.floor(startAt%60)+'s.':'Video ready.';
+    },
+    onStateChange:onPlayerStateChange,
+    onError:event=>{el('playerMessage').textContent='YouTube player error ('+event.data+'). This video may block playback in the embedded player.';}
    }
   });
  }catch(e){
-  const frame=el('videoFrame');
-  frame.innerHTML='<iframe title="YouTube video player" src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(video.videoId)+'?playsinline=1&rel=0&start='+Math.floor(startAt||0)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen style="width:100%;height:100%;border:0"></iframe>';
+  el('playerMessage').textContent='Could not start the YouTube player. Please try again.';
  }
 }
 function savePositionNow(){
