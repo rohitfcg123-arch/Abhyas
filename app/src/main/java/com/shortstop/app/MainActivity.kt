@@ -259,6 +259,19 @@ class MainActivity : Activity() {
                 appList.addView(divider, LinearLayout.LayoutParams(-1, dp(1)))
             }
         }
+        if (query.isBlank() && !showAllApps && visibleApps.size > 25) {
+            val more = actionButton("Show all installed apps  ↓", surface2).apply {
+                textSize = 13f
+                setOnClickListener {
+                    showAllApps = true
+                    renderAppRows()
+                }
+            }
+            appList.addView(more, LinearLayout.LayoutParams(-1, dp(44)).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(8)
+            })
+        }
         updateCount()
     }
 
