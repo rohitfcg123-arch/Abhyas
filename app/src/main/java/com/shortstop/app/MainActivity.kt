@@ -445,6 +445,13 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun refreshRemoteUi() {
+            runOnUiThread {
+                loadRemoteUiOrFallback()
+            }
+        }
+
+        @JavascriptInterface
         fun openAccessibilitySettings() {
             runOnUiThread {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
