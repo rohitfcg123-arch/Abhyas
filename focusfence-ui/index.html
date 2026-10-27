@@ -394,7 +394,24 @@ window.playSavedVideo=(id)=>{
  const startAt=savedPosition(v);
  el('playerMessage').textContent=startAt>5?'Resuming from '+Math.floor(startAt/60)+'m '+Math.floor(startAt%60)+'s…':'Starting video…';
  if(window.YT&&YT.Player){createYouTubePlayer(v,startAt)}
- else{window.pendingResumeVideo={video:v,startAt};frame.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(v.videoId)+'?playsinline=1&rel=0&enablejsapi=1&start='+Math.floor(startAt)}
+ else{
+  window.pendingResumeVideo={video:v,startAt};
+  el('playerMessage').textContent='Loading YouTube player…';
+  if(!window._ytApiWaitTimer){
+   let tries=0;
+   window._ytApiWaitTimer=setInterval(()=>{
+    tries++;
+    if(window.YT&&YT.Player&&window.pendingResumeVideo){
+     clearInterval(window._ytApiWaitTimer);window._ytApiWaitTimer=null;
+     const pending=window.pendingResumeVideo;window.pendingResumeVideo=null;
+     createYouTubePlayer(pending.video,pending.startAt);
+    }else if(tries>=20){
+     clearInterval(window._ytApiWaitTimer);window._ytApiWaitTimer=null;
+     el('playerMessage').textContent='YouTube player could not load. Check internet and try again.';
+    }
+   },500);
+  }
+ }
  try{const n=window.FocusFenceNative;if(n&&n.setPlayerActive)n.setPlayerActive(true)}catch(e){}
  window.closePlaylistPage();el('playerCard').scrollIntoView({behavior:'smooth',block:'start'});
 };
