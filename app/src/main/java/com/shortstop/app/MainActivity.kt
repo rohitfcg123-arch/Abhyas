@@ -1,12 +1,15 @@
 package com.shortstop.app
 
 import android.app.Activity
+import android.app.PictureInPictureParams
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Build
+import android.util.Rational
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
@@ -14,6 +17,7 @@ import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
@@ -22,6 +26,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import org.json.JSONArray
@@ -30,6 +35,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class MainActivity : Activity() {
+    private var playerWebView: WebView? = null
+    private var playerActive = false
+    private var fullscreenCustomView: View? = null
+    private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
+    private var previousSystemUiVisibility = 0
     private lateinit var status: TextView
     private lateinit var count: TextView
     private lateinit var appList: LinearLayout
@@ -61,6 +71,63 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (::status.isInitialized) updateStatus()
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val web = playerWebView ?: return
+        if (!playerActive || isInPictureInPictureMode) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            web.evaluateJavascript("document.body.classList.add('pip-mode')", null)
+            try {
+                enterPictureInPictureMode(
+                    PictureInPictureParams.Builder()
+                        .setAspectRatio(Rational(16, 9))
+                        .build()
+                )
+            } catch (_: Exception) {
+                web.evaluateJavascript("document.body.classList.remove('pip-mode')", null)
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (!isInPictureInPictureMode) {
+            playerWebView?.evaluateJavascript("document.body.classList.remove('pip-mode')", null)
+        }
+    }
+
+    private fun showFullscreenVideo(view: View, callback: WebChromeClient.CustomViewCallback) {
+        if (fullscreenCustomView != null) {
+            callback.onCustomViewHidden()
+            return
+        }
+        fullscreenCustomView = view
+        fullscreenCallback = callback
+        previousSystemUiVisibility = window.decorView.systemUiVisibility
+        val decor = window.decorView as? FrameLayout
+        decor?.addView(view, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_FULLSCREEN or
+            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        )
+    }
+
+    private fun hideFullscreenVideo() {
+        val view = fullscreenCustomView ?: return
+        (window.decorView as? FrameLayout)?.removeView(view)
+        fullscreenCustomView = null
+        fullscreenCallback?.onCustomViewHidden()
+        fullscreenCallback = null
+        window.decorView.systemUiVisibility = previousSystemUiVisibility
     }
 
     private fun render() {
@@ -223,6 +290,7 @@ class MainActivity : Activity() {
             runOnUiThread {
                 if (html != null && html!!.contains("FOCUSFENCE")) {
                     val web = WebView(this)
+                    playerWebView = web
                     web.setBackgroundColor(bg)
                     web.settings.javaScriptEnabled = true
                     web.settings.domStorageEnabled = false
@@ -230,6 +298,15 @@ class MainActivity : Activity() {
                     web.settings.allowContentAccess = false
                     web.settings.javaScriptCanOpenWindowsAutomatically = false
                     web.addJavascriptInterface(FocusFenceBridge(), "FocusFenceNative")
+                    web.webChromeClient = object : WebChromeClient() {
+                        override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+                            if (view != null && callback != null) showFullscreenVideo(view, callback)
+                        }
+
+                        override fun onHideCustomView() {
+                            hideFullscreenVideo()
+                        }
+                    }
                     web.webViewClient = object : WebViewClient() {
                         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                             // Allow embedded player frames and their media resources, but keep
@@ -272,6 +349,11 @@ class MainActivity : Activity() {
                 if (blocked) blockedPackages.add(packageName) else blockedPackages.remove(packageName)
                 prefs.edit().putStringSet(KEY_BLOCKED_PACKAGES, blockedPackages.toSet()).apply()
             }
+        }
+
+        @JavascriptInterface
+        fun setPlayerActive(active: Boolean) {
+            playerActive = active
         }
 
         @JavascriptInterface
