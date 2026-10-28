@@ -278,6 +278,19 @@ loadData();loadChannels();setInterval(refreshStatus,2500);
 </script>
 
 <script>
+// Surface Firebase module load/runtime failures instead of leaving the fallback silently active.
+window.addEventListener('error', function(event) {
+  const target = event.target;
+  const isModuleLoadError = target && target.tagName === 'SCRIPT' && target.type === 'module';
+  if (!isModuleLoadError && !event.message) return;
+  if (window.__focusFenceAuthModuleReady) return;
+  const message = document.getElementById('authMessage');
+  if (message) {
+    message.textContent = 'Login service failed to load. Check internet and reload. ' + (event.message || 'Firebase module import failed.');
+    message.style.display = 'block';
+    message.className = 'auth-message';
+  }
+}, true);
 // Keep the login panel usable even if the Firebase module fails to load.
 window.openAuth = function(mode) {
   const panel=document.getElementById('authPanel');
