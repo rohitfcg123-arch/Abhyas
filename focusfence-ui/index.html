@@ -100,7 +100,9 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
 .auth-actions{display:flex;gap:6px;margin-left:auto}.auth-panel{display:none;margin:8px 0 15px;padding:15px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}.auth-panel.open{display:block}.auth-panel h2{font-size:18px;margin:0 0 6px}.auth-panel p{font-size:12px;color:var(--muted);margin:0 0 12px}.auth-panel label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}.auth-panel input{width:100%;height:44px;border:1px solid #28334e;border-radius:11px;background:var(--bg);color:var(--white);padding:0 11px;font:inherit}.auth-panel .primary{margin-top:14px}.auth-secondary{display:flex;gap:8px;margin-top:8px}.auth-secondary button{flex:1;padding:10px 5px;border-radius:11px;background:var(--surface2);font-size:12px}.auth-message{font-size:12px;color:#ffcd78;margin-top:10px;overflow-wrap:anywhere}.auth-message.success{color:var(--mint)}
 
 #pullRefreshIndicator{position:fixed;top:0;left:50%;transform:translate(-50%,-100%);z-index:20000;padding:9px 15px;border-radius:0 0 14px 14px;background:#1e2741;color:#56e7be;border:1px solid #46516c;font-size:12px;font-weight:800;box-shadow:0 8px 20px #0004;transition:transform .16s;pointer-events:none}#pullRefreshIndicator.visible{transform:translate(-50%,0)}
-.apps-dropdown{width:100%;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;border:1px solid #2b3550;border-radius:18px;background:#171f34;color:inherit;padding:16px;margin:20px 0 10px;font:inherit}.apps-heading{flex:1;min-width:0}.apps-heading h2{margin:0 0 5px;font-size:18px}.apps-heading p{margin:0;color:#9da9c3;font-size:13px}.apps-chevron{font-size:24px;color:#aab5d0;transition:transform .2s}.apps-dropdown[aria-expanded="true"] .apps-chevron{transform:rotate(180deg)}#appsPanel[hidden]{display:none!important}#appsPanel #search{width:100%;box-sizing:border-box;margin:4px 0 12px;padding:14px 15px;border:1px solid #303c5b;border-radius:14px;background:#0b1020;color:#f4f6ff;font:inherit;outline:none}#appsPanel #search:focus{border-color:#8b6cff}#appsPanel .list{max-height:420px;overflow-y:auto;overscroll-behavior:contain}</style>
+.apps-dropdown{width:100%;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;border:1px solid #2b3550;border-radius:18px;background:#171f34;color:inherit;padding:16px;margin:20px 0 10px;font:inherit}.apps-heading{flex:1;min-width:0}.apps-heading h2{margin:0 0 5px;font-size:18px}.apps-heading p{margin:0;color:#9da9c3;font-size:13px}.apps-chevron{font-size:24px;color:#aab5d0;transition:transform .2s}.apps-dropdown[aria-expanded="true"] .apps-chevron{transform:rotate(180deg)}#appsPanel[hidden]{display:none!important}#appsPanel #search{width:100%;box-sizing:border-box;margin:4px 0 12px;padding:14px 15px;border:1px solid #303c5b;border-radius:14px;background:#0b1020;color:#f4f6ff;font:inherit;outline:none}#appsPanel #search:focus{border-color:#8b6cff}#appsPanel .list{max-height:420px;overflow-y:auto;overscroll-behavior:contain}
+.channel-library-home{margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}.channel-library-home h2{font-size:17px;margin:0 0 6px}.channel-library-home p{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 12px}.channel-library-home button,.channel-library-page button{border-radius:11px;background:var(--purple);padding:10px 12px;font-size:12px}.channel-library-page{display:none;position:fixed;inset:0;z-index:10002;overflow:auto;background:var(--bg);padding:max(14px,env(safe-area-inset-top)) 12px max(24px,env(safe-area-inset-bottom))}.channel-library-page.open{display:block}.channel-library-head{display:flex;align-items:center;gap:10px;margin:4px 0 16px}.channel-library-head h2{font-size:20px;margin:0;flex:1}.channel-library-head button{background:var(--surface2)}.channel-library-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px;margin:12px 0}.channel-pick{display:flex;align-items:center;gap:9px;text-align:left;padding:11px!important;background:var(--surface)!important;border:1px solid var(--line);min-width:0}.channel-pick.active{border-color:var(--purple)}.channel-pick img{width:38px;height:38px;border-radius:50%;object-fit:cover;flex:none}.channel-pick span{min-width:0;overflow-wrap:anywhere;font-weight:750}.channel-library-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}.channel-library-toolbar input{flex:1;min-width:130px}.channel-library-page input{height:42px;border:1px solid #28334e;border-radius:11px;background:var(--surface);color:var(--white);padding:0 10px;font:inherit;font-size:12px;min-width:0}.library-video{display:flex;align-items:center;gap:9px;padding:10px 0;border-top:1px solid var(--line)}.library-video img{width:100px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;flex:none}.library-video-copy{flex:1;min-width:0}.library-video-title{font-size:12px;font-weight:750;line-height:1.35;overflow-wrap:anywhere}.library-video-meta,.library-status{font-size:10px;color:var(--muted);margin-top:4px}.library-video input[type=checkbox]{width:19px;height:19px;flex:none;accent-color:var(--purple)}.library-video .custom-name{width:100%;margin-top:7px}.library-video button{padding:8px 10px;flex:none}.library-section-title{font-size:14px;font-weight:800;margin:18px 0 8px}.saved-video-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.saved-video-actions button{padding:7px 9px;background:var(--surface2)}
+</style>
 </head>
 <body>
 <div id="pullRefreshIndicator" aria-live="polite">↓ Pull to refresh</div>
@@ -131,15 +133,13 @@ body.pip-mode #videoFrame{display:block!important;width:100vw;height:100vh;aspec
  <button type="button" onclick="openPlaylistPage()">Open playlist &amp; manage videos →</button>
  <div id="playlistHomeStatus" class="playlist-message">Sign in to load your saved playlist.</div>
 </section>
-<section class="yt-library" id="youtubeLibrary">
-<h2>🎬 Allowed YouTube Channels</h2><p>Add channel names or channel links, search their listed videos, and play them inside FocusFence.</p>
-<label class="channel-sub" for="youtubeApiKey">YouTube Data API key (required)</label><input id="youtubeApiKey" type="password" autocomplete="off" placeholder="Paste YouTube Data API key">
-<div class="yt-actions"><button type="button" onclick="saveYouTubeApiKey()">Save API key</button><button type="button" onclick="toggleApiKeyVisibility()">Show / hide key</button></div>
-<form class="yt-form" onsubmit="addYouTubeChannel(event)"><input id="youtubeChannelInput" maxlength="180" placeholder="Channel name or YouTube channel URL" required><button type="submit">Add</button></form>
-<div id="youtubeStatus" class="yt-status">Add your API key, then add a channel.</div><div id="youtubeChannels"></div>
-<label class="channel-sub" for="youtubeVideoSearch" style="display:block;margin-top:14px">Search listed-channel videos</label><input id="youtubeVideoSearch" type="search" placeholder="Search video titles">
-<div id="youtubeVideoResults"></div><div class="channel-note">Shorts filter hides videos 3 minutes or shorter. YouTube's API does not reliably identify every Short, so this is an approximation.</div>
-</section>
+<section class="channel-library-home"><h2>🎬 Focus Friends · YouTube library</h2><p>Open the channel library, choose one channel, select videos, and save them to your own playlist.</p><button type="button" onclick="openChannelLibrary()">Open channel library →</button><div id="channelLibraryHomeStatus" class="playlist-message">Sign in to sync channels and playlist.</div></section>
+<section class="channel-library-page" id="channelLibraryPage"><div class="channel-library-head"><button type="button" onclick="closeChannelLibrary()">← Home</button><h2>Focus Friends</h2><button type="button" onclick="openPlaylistPage()">My Playlist</button></div>
+<label class="channel-sub" for="youtubeApiKey">YouTube Data API key</label><input id="youtubeApiKey" type="password" autocomplete="off" placeholder="Paste YouTube Data API key" style="width:100%"><div class="yt-actions"><button type="button" onclick="saveYouTubeApiKey()">Save API key</button><button type="button" onclick="toggleApiKeyVisibility()">Show / hide key</button></div>
+<div class="library-status" id="youtubeStatus">Save your API key, then add a channel.</div><form class="yt-form" onsubmit="addYouTubeChannel(event)"><input id="youtubeChannelInput" maxlength="180" placeholder="Channel name or YouTube channel URL" required><button type="submit">Add</button></form>
+<div class="library-section-title">Your channels · tap one to open its videos</div><div id="youtubeChannels" class="channel-library-grid"></div><div id="selectedChannelHeading" class="library-section-title">Select a channel to view its videos</div>
+<div class="channel-library-toolbar"><input id="youtubeVideoSearch" type="search" placeholder="Search this channel's videos"><button type="button" onclick="renderYtVideoSearch()">Search</button></div><div class="library-status">Select videos using checkboxes. Add a custom playlist name if desired.</div><div id="youtubeVideoResults"></div>
+<button type="button" onclick="saveSelectedChannelVideos()" style="width:100%;margin-top:14px">Save selected videos to My Playlist</button><div class="library-status" id="selectedVideosStatus" aria-live="polite"></div><div class="channel-note">Shorts filter hides videos 3 minutes or shorter. YouTube's API does not reliably identify every Short, so this is an approximation.</div></section>
 <section id="playerCard" class="player-card">
  <div class="channel-title">Now playing</div>
  <div id="nowPlayingTitle" class="channel-sub">Choose a saved video from My Playlist.</div>
@@ -396,6 +396,13 @@ function playVideoObject(v){
  try{const n=window.FocusFenceNative;if(n&&n.setPlayerActive)n.setPlayerActive(true)}catch(e){}
  window.closePlaylistPage();el('playerCard').scrollIntoView({behavior:'smooth',block:'start'});
 }
+window.renameSavedVideo=async id=>{
+ if(!currentUser)return;const v=savedVideos.find(x=>x.id===id);if(!v)return;
+ const next=prompt('Enter your playlist name for this video:',v.title||'');if(next===null)return;
+ const title=next.trim().slice(0,100);if(!title){alert('Video name cannot be empty.');return}
+ try{await updateDoc(doc(db,'users',currentUser.uid,'playlistVideos',id),{title,updatedAt:serverTimestamp()});await loadPlaylist();}
+ catch(e){if(el('playlistMessage'))el('playlistMessage').textContent='Could not rename video. Check Firestore rules.'}
+};
 window.deleteSavedVideo=async id=>{
  if(!currentUser)return;
  try{await deleteDoc(doc(db,'users',currentUser.uid,'playlistVideos',id));await loadPlaylist()}catch(e){if(el('playlistMessage'))el('playlistMessage').textContent='Could not delete this video.'}
@@ -403,13 +410,13 @@ window.deleteSavedVideo=async id=>{
 function renderPlaylist(){
  const box=el('playlistVideos');if(!box)return;
  if(!currentUser){box.innerHTML='<div class="playlist-message">Continue with Google to view your cloud playlist on any phone.</div>';return}
- if(!savedVideos.length){box.innerHTML='<div class="playlist-message">Your playlist is empty. Add your first video above.</div>';return}
- box.innerHTML=savedVideos.map(v=>'<div class="video-item"><div class="video-item-main"><div class="video-item-title">'+safe(v.title)+'</div><div class="video-item-url">'+safe(v.url)+'</div><div class="video-item-url">'+(savedPosition(v)>5?'Resume at '+Math.floor(savedPosition(v)/60)+'m '+Math.floor(savedPosition(v)%60)+'s':'Not started')+'</div></div><button onclick="playSavedVideo(\''+v.id+'\')">Play</button><button onclick="deleteSavedVideo(\''+v.id+'\')">Delete</button></div>').join('');
+ if(!savedVideos.length){box.innerHTML='<div class="playlist-message">Your playlist is empty. Add videos from Focus Friends.</div>';return}
+ box.innerHTML=savedVideos.map(v=>'<div class="video-item"><div class="video-item-main"><div class="video-item-title">'+safe(v.title)+'</div><div class="video-item-url">'+safe(v.channelTitle||v.url)+'</div><div class="video-item-url">'+(savedPosition(v)>5?'Resume at '+Math.floor(savedPosition(v)/60)+'m '+Math.floor(savedPosition(v)%60)+'s':'Not started')+'</div><div class="saved-video-actions"><button onclick="playSavedVideo(\\''+v.id+'\\')">Play</button><button onclick="renameSavedVideo(\\''+v.id+'\\')">Rename</button><button onclick="deleteSavedVideo(\\''+v.id+'\\')">Remove</button></div></div></div>').join('');
 }
 function safe(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 const ytKeyStorage='focusfence-youtube-api-key';
-let allowedChannels=[],channelVideos={};
+let allowedChannels=[],channelVideos={},selectedLibraryChannelId='',selectedLibraryVideoIds=new Set();
 const ytKeyInput=()=>el('youtubeApiKey');
 if(localStorage.getItem(ytKeyStorage))ytKeyInput().value=localStorage.getItem(ytKeyStorage);
 window.toggleApiKeyVisibility=()=>{const x=ytKeyInput();x.type=x.type==='password'?'text':'password'};
@@ -425,8 +432,47 @@ async function loadYtVideos(channelId){const c=allowedChannels.find(x=>x.channel
 async function loadSavedYouTubeChannels(){if(!currentUser)return;try{const s=await getDocs(query(collection(db,'users',currentUser.uid,'youtubeChannels'),orderBy('createdAt','desc')));allowedChannels=s.docs.map(d=>({id:d.id,...d.data()}));renderYtChannels();for(const c of allowedChannels){try{await loadYtVideos(c.channelId)}catch(e){ytStatus('Could not load '+c.title+': '+e.message)}}if(!allowedChannels.length)ytStatus('Add your first channel above.')}catch(e){ytStatus('Channel sync failed. Check Firestore rules. '+e.message)}}
 window.removeYouTubeChannel=async id=>{if(!currentUser)return;try{await deleteDoc(doc(db,'users',currentUser.uid,'youtubeChannels',id));allowedChannels=allowedChannels.filter(c=>c.channelId!==id);delete channelVideos[id];renderYtChannels();renderYtVideoSearch();ytStatus('Channel removed.')}catch(e){ytStatus('Remove failed: '+e.message)}};
 window.refreshYouTubeChannel=async id=>{ytStatus('Refreshing videos…');try{await loadYtVideos(id);ytStatus('Videos refreshed.')}catch(e){ytStatus('Refresh failed: '+e.message)}};
-function renderYtChannels(){const box=el('youtubeChannels');if(!box)return;if(!currentUser){box.innerHTML='<div class="yt-status">Log in to sync your channel list.</div>';return}if(!allowedChannels.length){box.innerHTML='<div class="yt-status">No channels added yet.</div>';return}box.innerHTML=allowedChannels.map(c=>'<div class="yt-channel"><div class="yt-channel-head">'+(c.thumbnail?'<img class="yt-thumb" style="width:38px;aspect-ratio:1" src="'+safe(c.thumbnail)+'" alt="">':'')+'<div class="yt-channel-name">'+safe(c.title)+'</div><button onclick="refreshYouTubeChannel(\''+safe(c.channelId)+'\')">Refresh</button><button onclick="removeYouTubeChannel(\''+safe(c.channelId)+'\')">Remove</button></div><div class="yt-status">'+((channelVideos[c.channelId]||[]).length)+' eligible videos loaded from recent 50</div></div>').join('')}
-function renderYtVideoSearch(){const box=el('youtubeVideoResults');if(!box)return;const q=(el('youtubeVideoSearch').value||'').trim().toLocaleLowerCase();const videos=allowedChannels.flatMap(c=>(channelVideos[c.channelId]||[]).map(v=>({...v,channelId:c.channelId}))).filter(v=>!q||v.title.toLocaleLowerCase().includes(q)||v.channelTitle.toLocaleLowerCase().includes(q)).slice(0,80);if(!videos.length){box.innerHTML='<div class="yt-status">'+(q?'No matching titles in loaded videos.':'Add a channel to see its videos here.')+'</div>';return}box.innerHTML=videos.map(v=>'<div class="yt-video">'+(v.thumbnail?'<img class="yt-thumb" src="'+safe(v.thumbnail)+'" alt="">':'')+'<div style="min-width:0;flex:1"><div class="yt-video-title">'+safe(v.title)+'</div><div class="yt-video-meta">'+safe(v.channelTitle)+' · '+Math.floor(v.seconds/60)+' min</div></div><button class="yt-play" onclick="playListedVideo(\''+safe(v.videoId)+'\',\''+encodeURIComponent(v.title).replace(/'/g,'%27')+'\')">Play</button></div>').join('')}
+function renderYtChannels(){
+ const box=el('youtubeChannels');if(!box)return;
+ if(!currentUser){box.innerHTML='<div class="library-status">Log in to sync your channel list.</div>';return}
+ if(!allowedChannels.length){box.innerHTML='<div class="library-status">No channels added yet. Add one above.</div>';return}
+ box.innerHTML=allowedChannels.map(c=>'<button type="button" class="channel-pick '+(selectedLibraryChannelId===c.channelId?'active':'')+'" onclick="selectLibraryChannel(\\''+safe(c.channelId)+'\\')">'+(c.thumbnail?'<img src="'+safe(c.thumbnail)+'" alt="">':'')+'<span>'+safe(c.title)+'</span></button>').join('');
+}
+window.openChannelLibrary=()=>{el('channelLibraryPage').classList.add('open');renderYtChannels();renderYtVideoSearch();};
+window.closeChannelLibrary=()=>el('channelLibraryPage').classList.remove('open');
+window.selectLibraryChannel=async id=>{
+ selectedLibraryChannelId=id;selectedLibraryVideoIds.clear();
+ const c=allowedChannels.find(x=>x.channelId===id);
+ el('selectedChannelHeading').textContent=c?'Videos from '+c.title:'Select a channel to view its videos';
+ renderYtChannels();renderYtVideoSearch();
+ if(c&&!(channelVideos[id]||[]).length){ytStatus('Loading videos from '+c.title+'…');try{await loadYtVideos(id)}catch(e){ytStatus('Could not load videos: '+e.message)}}
+};
+function renderYtVideoSearch(){
+ const box=el('youtubeVideoResults');if(!box)return;
+ const q=(el('youtubeVideoSearch').value||'').trim().toLocaleLowerCase();
+ const videos=(channelVideos[selectedLibraryChannelId]||[]).filter(v=>!q||v.title.toLocaleLowerCase().includes(q));
+ if(!selectedLibraryChannelId){box.innerHTML='<div class="library-status">Tap a channel above to show only its videos.</div>';return}
+ if(!videos.length){box.innerHTML='<div class="library-status">'+(q?'No matching videos in this channel.':'No eligible videos loaded yet. Try refreshing.')+'</div>';return}
+ box.innerHTML=videos.map(v=>'<div class="library-video"><img src="'+safe(v.thumbnail||'')+'" alt=""><div class="library-video-copy"><div class="library-video-title">'+safe(v.title)+'</div><div class="library-video-meta">'+Math.floor(v.seconds/60)+' min</div><input class="custom-name" id="customName-'+safe(v.videoId)+'" maxlength="100" placeholder="Custom playlist name (optional)" value="'+safe(v.customTitle||'')+'"></div><input type="checkbox" aria-label="Select video" '+(selectedLibraryVideoIds.has(v.videoId)?'checked':'')+' onchange="toggleLibraryVideo(\\''+safe(v.videoId)+'\\',this.checked)"><button type="button" onclick="playListedVideo(\\''+safe(v.videoId)+'\\',\\''+encodeURIComponent(v.title).replace(/'/g,'%27')+'\\')">Play</button></div>').join('');
+}
+window.toggleLibraryVideo=(id,checked)=>{if(checked)selectedLibraryVideoIds.add(id);else selectedLibraryVideoIds.delete(id)};
+window.saveSelectedChannelVideos=async()=>{
+ const status=el('selectedVideosStatus');
+ if(!currentUser){status.textContent='Please sign in first to save your playlist.';return}
+ if(!selectedLibraryChannelId||!selectedLibraryVideoIds.size){status.textContent='Select at least one video first.';return}
+ const channel=allowedChannels.find(x=>x.channelId===selectedLibraryChannelId);
+ try{
+  status.textContent='Saving selected videos…';
+  for(const id of selectedLibraryVideoIds){
+   const v=(channelVideos[selectedLibraryChannelId]||[]).find(x=>x.videoId===id);if(!v)continue;
+   const custom=(el('customName-'+id)?.value||'').trim(),title=(custom||v.title).slice(0,100),url='https://www.youtube.com/watch?v='+id;
+   const duplicate=savedVideos.find(x=>x.videoId===id);
+   if(duplicate)await updateDoc(doc(db,'users',currentUser.uid,'playlistVideos',duplicate.id),{title,url,channelTitle:channel?.title||'',updatedAt:serverTimestamp()});
+   else await addDoc(collection(db,'users',currentUser.uid,'playlistVideos'),{title,url,videoId:id,channelTitle:channel?.title||'',createdAt:serverTimestamp()});
+  }
+  selectedLibraryVideoIds.clear();await loadPlaylist();renderYtVideoSearch();status.textContent='Selected videos saved to My Playlist.';
+ }catch(e){status.textContent='Could not save videos. Check sign-in and Firestore rules.'}
+};
 el('youtubeVideoSearch').addEventListener('input',renderYtVideoSearch);
 
 </script></body></html>
