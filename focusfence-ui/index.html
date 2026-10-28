@@ -381,7 +381,27 @@ window.submitEmailAuth = async function(event) {
       });
       if (!verifyResponse.ok) { show('Account created, but verification email could not be sent. Please try resend from the app.', false); return; }
     }
-    show(signup ? 'Account created. Verification link sent to your email. Open it, then log in.' : 'Credentials are correct, but the app login service did not initialize. Reload the app and try again.', true);
+    if (!signup) {
+      show('Firebase credentials were accepted, but the app Firebase module did not start. Trying direct Firebase SDK login…');
+      try {
+        const appMod = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js');
+        const authMod = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');
+        const fallbackApp = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp({
+          apiKey:'AIzaSyBg_BlQ--coEPqFioe00_uHEyYwUc-OHQ4',
+          authDomain:'abhyas-e33b3.firebaseapp.com',
+          projectId:'abhyas-e33b3',
+          appId:'1:294695344786:web:17ba12f91ec80a0e25644b'
+        }, 'focusfence-fallback');
+        const fallbackAuth = authMod.getAuth(fallbackApp);
+        await authMod.setPersistence(fallbackAuth, authMod.browserLocalPersistence);
+        await authMod.signInWithEmailAndPassword(fallbackAuth, email, password);
+        show('Firebase sign-in succeeded, but the main app service did not start. Please send this message screenshot so we can fix app initialization.', true);
+      } catch (sdkError) {
+        show('Firebase app module failed: ' + (sdkError && (sdkError.message || sdkError.code) || 'unknown error') + '. Check internet access to gstatic.com.', false);
+      }
+    } else {
+      show('Account created. Verification link sent to your email. Open it, then log in.', true);
+    }
   } catch (error) {
     show(error?.message || 'Could not contact the login service. Check your internet connection.');
   } finally {
