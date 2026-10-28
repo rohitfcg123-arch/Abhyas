@@ -275,6 +275,37 @@ loadData();loadChannels();setInterval(refreshStatus,2500);
 
 </script>
 
+<script>
+// Keep the login panel usable even if the Firebase module fails to load.
+window.openAuth = function(mode) {
+  const panel=document.getElementById('authPanel');
+  if(!panel) return;
+  const signup=mode==='signup';
+  panel.classList.add('open');
+  const title=document.getElementById('authTitle');
+  const intro=document.getElementById('authIntro');
+  const nameWrap=document.getElementById('authNameWrap');
+  const confirmWrap=document.getElementById('authConfirmWrap');
+  const name=document.getElementById('authName');
+  const confirm=document.getElementById('authConfirm');
+  const submit=document.getElementById('authSubmit');
+  const message=document.getElementById('authMessage');
+  if(title) title.textContent=signup?'Create account':'Welcome back';
+  if(intro) intro.textContent=signup?'Enter your name, email and password.':'Log in with your registered email and password.';
+  if(nameWrap) nameWrap.hidden=!signup;
+  if(confirmWrap) confirmWrap.hidden=!signup;
+  if(name) name.required=signup;
+  if(confirm) confirm.required=signup;
+  if(submit) submit.textContent=signup?'Create account':'Login';
+  if(message){message.textContent='';message.style.display='block';}
+};
+window.submitEmailAuth = async function(event) {
+  event.preventDefault();
+  const message=document.getElementById('authMessage');
+  if(message){message.textContent='Login service is still loading. Please wait a moment and reload the page. If this continues, the page script failed to load.';message.style.display='block';}
+};
+</script>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
