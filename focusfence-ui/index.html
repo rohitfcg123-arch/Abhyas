@@ -527,12 +527,12 @@ const ytApiScript=document.createElement('script');ytApiScript.src='https://www.
 let authMode='login';
 const rememberedEmailKey='focusfence-remembered-email';
 function initRememberedEmail(){
- const saved=localStorage.getItem(rememberedEmailKey)||'';
+ let saved='';try{saved=localStorage.getItem(rememberedEmailKey)||'';}catch(e){}
  const email=el('authEmail'),check=el('rememberEmail'),row=el('savedEmailRow'),use=el('useSavedEmail');
  if(saved&&row)row.style.display='block';
  if(saved&&email&&!email.value)email.value=saved;
  if(saved&&check)check.checked=true;
- if(use)use.onclick=()=>{if(email)email.value=localStorage.getItem(rememberedEmailKey)||'';if(check)check.checked=true;};
+ if(use)use.onclick=()=>{try{if(email)email.value=localStorage.getItem(rememberedEmailKey)||'';}catch(e){}if(check)check.checked=true;};
  const forgot=el('forgotPasswordBtn');
  if(forgot)forgot.onclick=async()=>{
    const value=(el('authEmail')?.value||'').trim(),msg=el('authMessage');
@@ -542,8 +542,8 @@ function initRememberedEmail(){
    catch(e){if(msg){msg.textContent=friendlyAuthError(e);msg.style.display='block';msg.className='auth-message';}}
  };
 }
-initRememberedEmail();
 window.__focusFenceAuthModuleReady = true;
+try{initRememberedEmail();}catch(e){const m=el('authMessage');if(m){m.textContent='Login loaded, but saved-email setup failed: '+(e.message||e);m.style.display='block';}}
 window.openAuth=(mode)=>{authMode=mode==='signup'?'signup':'login';el('authPanel').classList.add('open');el('authTitle').textContent=authMode==='signup'?'Create account':'Welcome back';el('authIntro').textContent=authMode==='signup'?'Enter your name, email and password.':'Log in with your registered email and password.';el('authNameWrap').hidden=authMode!=='signup';el('authConfirmWrap').hidden=authMode!=='signup';el('authName').required=authMode==='signup';el('authConfirm').required=authMode==='signup';el('authSubmit').textContent=authMode==='signup'?'Create account':'Login';el('authMessage').textContent='';el('authMessage').className='auth-message';};
 function friendlyAuthError(e){const c=e&&e.code;if(c==='auth/email-already-in-use')return 'This email already has an account. Please log in.';if(c==='auth/invalid-email')return 'Enter a valid email address.';if(c==='auth/weak-password')return 'Use a stronger password with at least 6 characters.';if(c==='auth/invalid-credential'||c==='auth/wrong-password'||c==='auth/user-not-found')return 'Email or password is incorrect.';if(c==='auth/operation-not-allowed')return 'Enable Email/Password in Firebase Console → Authentication → Sign-in method.';if(c==='auth/network-request-failed')return 'Network error. Check your internet.';return e&&e.message||'Authentication failed.';}
 window.submitEmailAuth=async event=>{event.preventDefault();await authPersistenceReady;const emailForRemember=(el('authEmail').value||'').trim();if(el('rememberEmail')?.checked){if(emailForRemember)localStorage.setItem(rememberedEmailKey,emailForRemember);const row=el('savedEmailRow');if(row)row.style.display='block';}else{localStorage.removeItem(rememberedEmailKey);const row=el('savedEmailRow');if(row)row.style.display='none';}const name=el('authName').value.trim(),email=el('authEmail').value.trim(),password=el('authPassword').value,confirm=el('authConfirm').value,msg=el('authMessage'),btn=el('authSubmit');if(authMode==='signup'&&!name){msg.textContent='Enter your name.';return}if(authMode==='signup'&&password!==confirm){msg.textContent='Passwords do not match.';return}btn.disabled=true;msg.textContent='Please wait…';try{let credential;if(authMode==='signup'){credential=await createUserWithEmailAndPassword(auth,email,password);await updateProfile(credential.user,{displayName:name});await sendEmailVerification(credential.user);await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name,email:credential.user.email,emailVerified:false,createdAt:serverTimestamp(),lastLoginAt:serverTimestamp()},{merge:true});}else{credential=await signInWithEmailAndPassword(auth,email,password);await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name:credential.user.displayName||credential.user.email,email:credential.user.email,lastLoginAt:serverTimestamp()},{merge:true});}msg.textContent=authMode==='signup'?'Account created. Verification link sent to your email. Open it, then log in.':'Login successful!';msg.className='auth-message success';if(authMode==='login')el('authPanel').classList.remove('open');}catch(e){msg.textContent=friendlyAuthError(e);msg.className='auth-message';msg.style.display='block'}finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Create account':'Login';}};
