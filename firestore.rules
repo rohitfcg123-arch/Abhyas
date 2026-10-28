@@ -35,6 +35,24 @@ service cloud.firestore {
       allow read, delete: if isOwner();
       allow create, update: if isOwner() && validVideo(request.resource.data);
     }
+    match /users/{userId}/youtubeChannels/{channelDocId} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function validChannel(data) {
+        return data.keys().hasAll(['channelId', 'title', 'thumbnail', 'createdAt'])
+          && data.channelId is string
+          && data.channelId == channelDocId
+          && data.title is string
+          && data.title.size() > 0
+          && data.title.size() <= 180
+          && data.thumbnail is string
+          && data.thumbnail.size() <= 2048
+          && data.createdAt is timestamp;
+      }
+      allow read, delete: if isOwner();
+      allow create, update: if isOwner() && validChannel(request.resource.data);
+    }
     match /{document=**} {
       allow read, write: if false;
     }
