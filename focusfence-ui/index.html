@@ -303,8 +303,62 @@ window.openAuth = function(mode) {
 };
 window.submitEmailAuth = async function(event) {
   event.preventDefault();
-  const message=document.getElementById('authMessage');
-  if(message){message.textContent='Login service is still loading. Please wait a moment and reload the page. If this continues, the page script failed to load.';message.style.display='block';}
+  const el = id => document.getElementById(id);
+  const message = el('authMessage');
+  const button = el('authSubmit');
+  const show = (text, success=false) => {
+    if (!message) return;
+    message.textContent = text;
+    message.style.display = 'block';
+    message.className = 'auth-message' + (success ? ' success' : '');
+  };
+  const email = (el('authEmail')?.value || '').trim();
+  const password = el('authPassword')?.value || '';
+  const signup = !el('authNameWrap')?.hidden;
+  const name = (el('authName')?.value || '').trim();
+  const confirm = el('authConfirm')?.value || '';
+  if (!email) { show('Enter your email address.'); el('authEmail')?.focus(); return; }
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) { show('Enter a valid email address.'); return; }
+  if (!password) { show('Enter your password.'); el('authPassword')?.focus(); return; }
+  if (signup && !name) { show('Enter your name.'); return; }
+  if (signup && password !== confirm) { show('Passwords do not match.'); return; }
+  if (button) { button.disabled = true; button.textContent = signup ? 'Creating account…' : 'Logging in…'; }
+  show(signup ? 'Creating your account…' : 'Checking your email and password…');
+  try {
+    const endpoint = signup ? 'signUp' : 'signInWithPassword';
+    const response = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:' + endpoint + '?key=AIzaSyBg_BlQ--coEPqFioe00_uHEyYwUc-OHQ4', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password, returnSecureToken:true})
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const code = data?.error?.message || '';
+      const errors = {
+        EMAIL_NOT_FOUND:'No account exists for this email address.',
+        INVALID_PASSWORD:'Incorrect password. Check it and try again.',
+        INVALID_LOGIN_CREDENTIALS:'Email or password is incorrect.',
+        INVALID_EMAIL:'Enter a valid email address.',
+        USER_DISABLED:'This account has been disabled.',
+        EMAIL_EXISTS:'This email is already registered. Please log in.',
+        WEAK_PASSWORD:'Choose a stronger password (at least 6 characters).',
+        OPERATION_NOT_ALLOWED:'Email/Password sign-in is disabled in Firebase Authentication.',
+        TOO_MANY_ATTEMPTS_TRY_LATER:'Too many attempts. Wait a while and try again.'
+      };
+      throw new Error(errors[code] || ('Authentication failed: ' + (code || 'unknown error') + '.'));
+    }
+    if (signup && data.idToken && name) {
+      await fetch('https://identitytoolkit.googleapis.com/v1/accounts:update?key=AIzaSyBg_BlQ--coEPqFioe00_uHEyYwUc-OHQ4', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({idToken:data.idToken,displayName:name,returnSecureToken:true})
+      });
+    }
+    show(signup ? 'Account created successfully. Reload the app and log in.' : 'Credentials are correct, but the app login service did not initialize. Reload the app and try again.', true);
+  } catch (error) {
+    show(error?.message || 'Could not contact the login service. Check your internet connection.');
+  } finally {
+    if (button) { button.disabled = false; button.textContent = signup ? 'Create account' : 'Login'; }
+  }
 };
 document.addEventListener('click', function(event) {
   const button = event.target.closest('#authActions button');
