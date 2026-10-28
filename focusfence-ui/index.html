@@ -279,6 +279,16 @@ loadData();loadChannels();setInterval(refreshStatus,2500);
 
 <script>
 // Surface Firebase module load/runtime failures instead of leaving the fallback silently active.
+window.addEventListener('unhandledrejection', function(event) {
+  if (window.__focusFenceAuthModuleReady) return;
+  const message = document.getElementById('authMessage');
+  const reason = event.reason && (event.reason.message || String(event.reason));
+  if (message) {
+    message.textContent = 'Firebase initialization failed: ' + (reason || 'module promise rejected');
+    message.style.display = 'block';
+    message.className = 'auth-message';
+  }
+});
 window.addEventListener('error', function(event) {
   const target = event.target;
   const isModuleLoadError = target && target.tagName === 'SCRIPT' && target.type === 'module';
@@ -440,7 +450,7 @@ document.addEventListener('click', function(event) {
 
 </script>
 
-<script type="module">
+<script type="module" onerror="(function(){var m=document.getElementById('authMessage');if(m&&!window.__focusFenceAuthModuleReady){m.textContent='Firebase login script could not load. Check internet/WebView access to gstatic.com and reload.';m.style.display='block';m.className='auth-message';}})()">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail, sendEmailVerification, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
