@@ -376,7 +376,7 @@ document.addEventListener('click', function(event) {
  // Independent password-reset fallback: works even if the Firebase JS module fails to load.
  document.addEventListener('click', async function(event) {
    const button = event.target.closest('#forgotPasswordBtn');
-   if (!button || window.__focusFenceAuthModuleReady) return;
+   if (!button) return;
    event.preventDefault();
    event.stopImmediatePropagation();
    const emailInput = document.getElementById('authEmail');
