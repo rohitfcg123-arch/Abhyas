@@ -318,7 +318,7 @@ window.submitEmailAuth = async function(event) {
   const name = (el('authName')?.value || '').trim();
   const confirm = el('authConfirm')?.value || '';
   if (!email) { show('Enter your email address.'); el('authEmail')?.focus(); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { show('Enter a valid email address.'); return; }
+  // Let Firebase validate the address; avoid rejecting valid Gmail aliases in the UI.
   if (!password) { show('Enter your password.'); el('authPassword')?.focus(); return; }
   if (signup && !name) { show('Enter your name.'); return; }
   if (signup && password !== confirm) { show('Passwords do not match.'); return; }
