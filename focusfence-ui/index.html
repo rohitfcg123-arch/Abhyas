@@ -304,6 +304,18 @@ window.submitEmailAuth = async function(event) {
   const message=document.getElementById('authMessage');
   if(message){message.textContent='Login service is still loading. Please wait a moment and reload the page. If this continues, the page script failed to load.';message.style.display='block';}
 };
+document.addEventListener('click', function(event) {
+  const button = event.target.closest('#authActions button');
+  if (!button) return;
+  const label = (button.textContent || '').trim().toLowerCase();
+  if (label === 'login' || label === 'sign up') {
+    event.preventDefault();
+    const signup = label === 'sign up';
+    const panel = document.getElementById('authPanel');
+    if (panel) panel.classList.add('open');
+    if (typeof window.openAuth === 'function') window.openAuth(signup ? 'signup' : 'login');
+  }
+});
 </script>
 
 <script type="module">
