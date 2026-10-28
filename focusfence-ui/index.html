@@ -393,10 +393,6 @@ document.addEventListener('click', function(event) {
      if (emailInput) emailInput.focus();
      return;
    }
-   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-     showMessage('Enter a valid email address.', false);
-     return;
-   }
    button.disabled = true;
    showMessage('Sending password reset email…', false);
    try {
