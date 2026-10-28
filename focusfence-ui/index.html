@@ -371,7 +371,7 @@ async function loadPlaylist(){
   if(el('playlistMessage'))el('playlistMessage').textContent='Playlist synced to your Google account.';
  }catch(e){const msg='Could not load playlist. Check Firestore is enabled and rules are published.';status(msg);if(el('playlistMessage'))el('playlistMessage').textContent=msg}
 }
-window.openPlaylistPage=()=>{el('playlistPage').classList.add('open');renderPlaylist();};
+window.openPlaylistPage=()=>{if(typeof closeChannelLibrary==='function')closeChannelLibrary();el('playlistPage').classList.add('open');renderPlaylist();};
 window.closePlaylistPage=()=>el('playlistPage').classList.remove('open');
 window.savePlaylistVideo=async event=>{
  event.preventDefault();
