@@ -539,7 +539,9 @@ document.addEventListener('click', function(event) {
 <script type="module" onerror="(function(){var m=document.getElementById('authMessage');if(m&&!window.__focusFenceAuthModuleReady){m.textContent='Firebase login script could not load. Check internet/WebView access to gstatic.com and reload.';m.style.display='block';m.className='auth-message';}})()">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail, sendEmailVerification, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+let db=null, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc, updateDoc;
+let firestoreReady=Promise.resolve(false);
+
 const firebaseConfig={
  apiKey:'AIzaSyBg_BlQ--coEPqFioe00_uHEyYwUc-OHQ4',
  authDomain:'abhyas-e33b3.firebaseapp.com',
@@ -549,7 +551,17 @@ const firebaseConfig={
  appId:'1:294695344786:web:17ba12f91ec80a0e25644b',
  measurementId:'G-PFRF9NFY6K'
 };
-const app=initializeApp(firebaseConfig), auth=getAuth(app), db=getFirestore(app), provider=new GoogleAuthProvider();
+const app=initializeApp(firebaseConfig), auth=getAuth(app), provider=new GoogleAuthProvider();
+// Load Firestore separately so a Firestore module failure cannot prevent email/password authentication.
+firestoreReady=import('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js').then(mod=>{
+ db=mod.getFirestore(app);
+ ({collection,addDoc,getDocs,deleteDoc,doc,query,orderBy,serverTimestamp,setDoc,updateDoc}=mod);
+ return true;
+}).catch(error=>{
+ const message=el('authMessage');
+ if(message){message.textContent='Login is available, but Firebase playlist sync failed to initialize: '+(error?.message||error);message.style.display='block';message.className='auth-message';}
+ return false;
+});
 // Keep the session across reloads and browser restarts until the user explicitly signs out.
 const authPersistenceReady=setPersistence(auth,browserLocalPersistence);
 let currentUser=null, savedVideos=[];
@@ -632,7 +644,7 @@ window.__focusFenceAuthModuleReady = true;
 try{initRememberedEmail();}catch(e){const m=el('authMessage');if(m){m.textContent='Login loaded, but saved-email setup failed: '+(e.message||e);m.style.display='block';}}
 window.openAuth=(mode)=>{authMode=mode==='signup'?'signup':'login';el('authPanel').classList.add('open');el('authTitle').textContent=authMode==='signup'?'Create account':'Welcome back';el('authIntro').textContent=authMode==='signup'?'Enter your name, email and password.':'Log in with your registered email and password.';el('authNameWrap').hidden=authMode!=='signup';el('authConfirmWrap').hidden=authMode!=='signup';el('authName').required=authMode==='signup';el('authConfirm').required=authMode==='signup';el('authSubmit').textContent=authMode==='signup'?'Create account':'Login';el('authMessage').textContent='';el('authMessage').className='auth-message';};
 function friendlyAuthError(e){const c=e&&e.code;if(c==='auth/email-already-in-use')return 'This email already has an account. Please log in.';if(c==='auth/invalid-email')return 'Enter a valid email address.';if(c==='auth/weak-password')return 'Use a stronger password with at least 6 characters.';if(c==='auth/invalid-credential'||c==='auth/wrong-password'||c==='auth/user-not-found')return 'Email or password is incorrect.';if(c==='auth/operation-not-allowed')return 'Enable Email/Password in Firebase Console → Authentication → Sign-in method.';if(c==='auth/network-request-failed')return 'Network error. Check your internet.';return e&&e.message||'Authentication failed.';}
-window.submitEmailAuth=async event=>{event.preventDefault();await authPersistenceReady;const emailForRemember=(el('authEmail').value||'').trim();if(el('rememberEmail')?.checked){if(emailForRemember)localStorage.setItem(rememberedEmailKey,emailForRemember);const row=el('savedEmailRow');if(row)row.style.display='block';}else{localStorage.removeItem(rememberedEmailKey);const row=el('savedEmailRow');if(row)row.style.display='none';}const name=el('authName').value.trim(),email=el('authEmail').value.trim(),password=el('authPassword').value,confirm=el('authConfirm').value,msg=el('authMessage'),btn=el('authSubmit');if(authMode==='signup'&&!name){msg.textContent='Enter your name.';return}if(authMode==='signup'&&password!==confirm){msg.textContent='Passwords do not match.';return}btn.disabled=true;msg.textContent='Please wait…';try{let credential;if(authMode==='signup'){credential=await createUserWithEmailAndPassword(auth,email,password);await updateProfile(credential.user,{displayName:name});await sendEmailVerification(credential.user);await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name,email:credential.user.email,emailVerified:false,createdAt:serverTimestamp(),lastLoginAt:serverTimestamp()},{merge:true});}else{credential=await signInWithEmailAndPassword(auth,email,password);await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name:credential.user.displayName||credential.user.email,email:credential.user.email,lastLoginAt:serverTimestamp()},{merge:true});}msg.textContent=authMode==='signup'?'Account created. Verification link sent to your email. Open it, then log in.':'Login successful!';msg.className='auth-message success';if(authMode==='login')el('authPanel').classList.remove('open');}catch(e){msg.textContent=friendlyAuthError(e);msg.className='auth-message';msg.style.display='block'}finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Create account':'Login';}};
+window.submitEmailAuth=async event=>{event.preventDefault();await authPersistenceReady;const emailForRemember=(el('authEmail').value||'').trim();if(el('rememberEmail')?.checked){if(emailForRemember)localStorage.setItem(rememberedEmailKey,emailForRemember);const row=el('savedEmailRow');if(row)row.style.display='block';}else{localStorage.removeItem(rememberedEmailKey);const row=el('savedEmailRow');if(row)row.style.display='none';}const name=el('authName').value.trim(),email=el('authEmail').value.trim(),password=el('authPassword').value,confirm=el('authConfirm').value,msg=el('authMessage'),btn=el('authSubmit');if(authMode==='signup'&&!name){msg.textContent='Enter your name.';return}if(authMode==='signup'&&password!==confirm){msg.textContent='Passwords do not match.';return}btn.disabled=true;msg.textContent='Please wait…';try{let credential;if(authMode==='signup'){credential=await createUserWithEmailAndPassword(auth,email,password);await updateProfile(credential.user,{displayName:name});await sendEmailVerification(credential.user);if(await firestoreReady){try{await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name,email:credential.user.email,emailVerified:false,createdAt:serverTimestamp(),lastLoginAt:serverTimestamp()},{merge:true});}catch(profileError){console.warn('Could not create Firebase user profile:',profileError);}}}else{credential=await signInWithEmailAndPassword(auth,email,password);if(await firestoreReady){try{await setDoc(doc(db,'users',credential.user.uid),{uid:credential.user.uid,name:credential.user.displayName||credential.user.email,email:credential.user.email,lastLoginAt:serverTimestamp()},{merge:true});}catch(profileError){console.warn('Could not update Firebase user profile:',profileError);}}}msg.textContent=authMode==='signup'?'Account created. Verification link sent to your email. Open it, then log in.':'Login successful!';msg.className='auth-message success';if(authMode==='login')el('authPanel').classList.remove('open');}catch(e){msg.textContent=friendlyAuthError(e);msg.className='auth-message';msg.style.display='block'}finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Create account':'Login';}};
 function status(msg){if(el('accountStatus'))el('accountStatus').textContent=msg;if(el('playlistHomeStatus'))el('playlistHomeStatus').textContent=msg}
 window.googleLogin=async()=>{
  try{await signInWithPopup(auth,provider)}
@@ -647,6 +659,7 @@ onAuthStateChanged(auth,async user=>{
 });
 async function loadPlaylist(){
  try{
+  if(!(await firestoreReady)||!db)throw new Error('Firebase playlist sync is not ready. Check internet access to gstatic.com.');
   const q=query(collection(db,'users',currentUser.uid,'playlistVideos'),orderBy('createdAt','desc'));
   const snap=await getDocs(q);savedVideos=snap.docs.map(d=>({id:d.id,...d.data()}));renderPlaylist();
   status(savedVideos.length+' saved video(s) · synced with Firebase');
