@@ -215,17 +215,34 @@ function refreshReelStats(){
   document.getElementById('reelsToday').textContent=s.reels;
   document.getElementById('shortsLimitLabel').textContent='Limit: '+s.shortsLimit+'/day';
   document.getElementById('reelsLimitLabel').textContent='Limit: '+s.reelsLimit+'/day';
-  document.getElementById('shortsDailyLimit').value=s.shortsLimit;
-  document.getElementById('reelsDailyLimit').value=s.reelsLimit;
+  // Do not overwrite a value while the user is editing it; stats refresh every 2 seconds.
+  const shortsInput=document.getElementById('shortsDailyLimit');
+  const reelsInput=document.getElementById('reelsDailyLimit');
+  if(document.activeElement!==shortsInput) shortsInput.value=s.shortsLimit;
+  if(document.activeElement!==reelsInput) reelsInput.value=s.reelsLimit;
   const pct=Math.min(100,Math.max(s.shorts/s.shortsLimit,s.reels/s.reelsLimit)*100);
   document.getElementById('reelProgressFill').style.width=pct+'%';
  }catch(e){}
 }
 function saveReelLimits(){
  const n=native();if(!n)return;
- const shorts=Math.max(1,Math.min(10000,parseInt(document.getElementById('shortsDailyLimit').value||'30',10)));
- const reels=Math.max(1,Math.min(10000,parseInt(document.getElementById('reelsDailyLimit').value||'30',10)));
- try{n.setDailyLimits(shorts,reels);refreshReelStats();document.getElementById('reelTrackerMessage').textContent='Daily limits saved. Scrolling will be blocked when either app reaches its limit.'}catch(e){document.getElementById('reelTrackerMessage').textContent='Could not save limits. Reopen the app and try again.'}
+ const shortsInput=document.getElementById('shortsDailyLimit');
+ const reelsInput=document.getElementById('reelsDailyLimit');
+ const shortsValue=Number.parseInt(shortsInput.value,10);
+ const reelsValue=Number.parseInt(reelsInput.value,10);
+ if(!Number.isInteger(shortsValue)||!Number.isInteger(reelsValue)||shortsValue<1||reelsValue<1){
+  document.getElementById('reelTrackerMessage').textContent='Enter a whole number greater than 0 for both limits.';
+  return;
+ }
+ const shorts=Math.min(10000,shortsValue);
+ const reels=Math.min(10000,reelsValue);
+ try{
+  n.setDailyLimits(shorts,reels);
+  shortsInput.value=shorts;
+  reelsInput.value=reels;
+  refreshReelStats();
+  document.getElementById('reelTrackerMessage').textContent='Saved: Shorts '+shorts+'/day, Reels '+reels+'/day.';
+ }catch(e){document.getElementById('reelTrackerMessage').textContent='Could not save limits. Reopen the app and try again.'}
 }
 function enableProtection(){const n=native();if(n)n.openAccessibilitySettings()}
 document.getElementById('search').addEventListener('input',()=>{showAll=!!document.getElementById('search').value.trim();draw()});
