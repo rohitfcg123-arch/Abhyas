@@ -659,7 +659,7 @@ class MainActivity : Activity() {
     companion object {
         const val PREFS_NAME = "shortstop_settings"
         const val KEY_BLOCKED_PACKAGES = "blocked_packages"
-        private const val REMOTE_UI_URL = "https://raw.githubusercontent.com/rohitfcg123-arch/Abhyas/main/focusfence-ui/index.html?v=20261029-login-diagnostic3"
+        private const val REMOTE_UI_URL = "https://raw.githubusercontent.com/rohitfcg123-arch/Abhyas/main/focusfence-ui/index.html?v=20261101-reel-limits"
         private const val KEY_CACHED_REMOTE_HTML = "cached_remote_ui_html"
         const val KEY_SHORTS_BLOCKING_ENABLED = "shorts_blocking_enabled"
         const val KEY_SHORTS_DAILY_LIMIT = "daily_shorts_limit"
