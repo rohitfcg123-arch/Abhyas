@@ -409,6 +409,28 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun getDailyStatsJson(): String {
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            val storedDay = prefs.getString("daily_media_stats_date", null)
+            val shorts = if (storedDay == today) prefs.getInt("daily_shorts_count", 0) else 0
+            val reels = if (storedDay == today) prefs.getInt("daily_reels_count", 0) else 0
+            val shortsLimit = prefs.getInt(KEY_SHORTS_DAILY_LIMIT, 30)
+            val reelsLimit = prefs.getInt(KEY_REELS_DAILY_LIMIT, 30)
+            return JSONObject()
+                .put("shorts", shorts).put("reels", reels)
+                .put("shortsLimit", shortsLimit).put("reelsLimit", reelsLimit)
+                .toString()
+        }
+
+        @JavascriptInterface
+        fun setDailyLimits(shorts: Int, reels: Int) {
+            prefs.edit()
+                .putInt(KEY_SHORTS_DAILY_LIMIT, shorts.coerceIn(1, 10000))
+                .putInt(KEY_REELS_DAILY_LIMIT, reels.coerceIn(1, 10000))
+                .apply()
+        }
+
+        @JavascriptInterface
         fun isProtectionEnabled(): Boolean = isServiceEnabled()
 
         @JavascriptInterface
@@ -640,6 +662,8 @@ class MainActivity : Activity() {
         private const val REMOTE_UI_URL = "https://raw.githubusercontent.com/rohitfcg123-arch/Abhyas/main/focusfence-ui/index.html?v=20261029-login-diagnostic3"
         private const val KEY_CACHED_REMOTE_HTML = "cached_remote_ui_html"
         const val KEY_SHORTS_BLOCKING_ENABLED = "shorts_blocking_enabled"
+        const val KEY_SHORTS_DAILY_LIMIT = "daily_shorts_limit"
+        const val KEY_REELS_DAILY_LIMIT = "daily_reels_limit"
         const val KEY_BLOCKED_CHANNELS = "blocked_youtube_channels"
     }
 }
